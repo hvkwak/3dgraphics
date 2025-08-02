@@ -2,9 +2,10 @@
 This repository contains my programming exercises and project code related to 3D computer graphics. The work is based on `3D Computer Graphics from Scratch` by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com)), along with additional explorations and personal projects.
 
 ## How to Run
-To compile and run the main program (e.g., `src/main.c`), use the following commands:
+To compile and run the main program (e.g., `src/main.c`), use the following command:
 ```
-make build && make run
+make build
+make run
 ```
 
 ## Features (latest-first)
