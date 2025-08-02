@@ -1,5 +1,5 @@
-#ifndef DISPLAY_H_
-#define DISPLAY_H_
+#ifndef DISPLAY_H
+#define DISPLAY_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -16,9 +16,10 @@ extern int window_height;
 bool initialize_window(void);
 void destroy_window(void);
 void draw_grid(uint32_t color);
+void draw_pixel(int x, int y, uint32_t color);
 void draw_rectangle(int x, int y, int w, int h, uint32_t color);
 void render_color_buffer(void);
 void clear_color_buffer(uint32_t color);
 
 
-#endif // DISPLAY_H_
+#endif // DISPLAY_H

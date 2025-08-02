@@ -61,10 +61,16 @@ void destroy_window(void){
     SDL_Quit(); // reverse of init.
 }
 
-/// Exercise: Drawing a Background Grid
+/// Exercise:
 /// Draw a background grid that fills the entire window.
 /// Lines should be rendered at every row/col multiple of 10.
-/// color: color of grid
+/**
+ * @brief draws a background grid
+ *
+ * @param color: color of grid pixels
+ * @return
+ */
+
 void draw_grid(uint32_t color){
 
     int nx = window_width/10;
@@ -85,16 +91,38 @@ void draw_grid(uint32_t color){
     }
 }
 
-/// Exercise: Create a functiton called draw_rect() that
-///           renders a rectangle on the screen.
-/// x: x pos of top left
-/// y: y pos of top left
-/// w: width of the rectangle
-/// h: height of the rectangle
+
+/**
+ * @brief draws a pixel
+ * @param x: x pos of pixel
+ *        y: y pos of pixel
+ *        color: color of pixel
+ * @return
+ */
+void draw_pixel(int x, int y, uint32_t color){
+
+    if (0 <= x && x < window_width && 0 <= y && y < window_height){
+        color_buffer[window_width*y + x] = color;
+    }
+}
+
+
+/// Exercise: Create a functiton called draw_rect() that renders a rectangle on
+///           the screen.
+/**
+* @brief draws rectangle
+*
+* @param
+* x: x pos of top left
+* y: y pos of top left
+* w: width of the rectangle
+* y: height of the rectangle
+* @return
+*/
 void draw_rectangle(int x, int y, int w, int h, uint32_t color){
 
     // check arguments
-    if (x < 0 || x >= window_width){
+    if (x < 0 || x >= window_width) {
         return;
     }
     if (y < 0 || y >= window_height) {
@@ -113,11 +141,12 @@ void draw_rectangle(int x, int y, int w, int h, uint32_t color){
     //
     // x+i : current_x
     // y+j : current_y
-    // i stays the innermost one.
+    // i stays the innermost one!
     for(int j = 0; j < h; j++){
         for (int i = 0; i < w; i++){
             if ((y + j) < window_height && (x + i) < window_width){
-                color_buffer[window_width*(y+j) + (x + i)] = color;
+                draw_pixel(x+i, y+j, color); // use draw_pixel()!
+                //color_buffer[window_width*(y+j) + (x + i)] = color;
             }
         }
     }

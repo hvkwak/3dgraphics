@@ -8,8 +8,10 @@ make build
 make run
 ```
 
-## Features (latest-first)
-This repository includes:
+## Features
+This repository includes (latest-first):
+* Projection of Points: Orthographic, Isometric, and Perspective
+* Vectors and Points using C Structs
 * Modular structure with multiple header files
 * Color buffer implementation for pixel-level drawing
 * SDL setup for window creation and rendering
