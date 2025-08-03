@@ -13,6 +13,7 @@ vec2_t projected_points[N_POINTS];
 bool is_running = false;
 float fov_factor = 640.0;
 vec3_t camera_position = {.x = 0, .y = 0, .z = -5};
+vec3_t cube_rotation = {.x = 0, .y = 0, .z = 0};
 
 void setup(void){
     // Allocate the required bytes in memory for the color buffer.
@@ -72,14 +73,22 @@ vec2_t project(vec3_t point){
 }
 
 void update(void){
+
+    cube_rotation.x += 0.01;
+    cube_rotation.y += 0.01;
+    cube_rotation.z += 0.01;
+
     for (int i = 0; i < N_POINTS; i++){
         vec3_t point = cube_points[i];
+        vec3_t transformed_point = vec3_rotate_y(point, cube_rotation.y);
+        transformed_point = vec3_rotate_x(transformed_point, cube_rotation.x);
+        transformed_point = vec3_rotate_z(transformed_point, cube_rotation.z);
 
         // Move the point away from the camera.
-        point.z = point.z - camera_position.z;
+        transformed_point.z = transformed_point.z - camera_position.z;
 
         // project the curren tpoint
-        vec2_t projected_point = project(point);
+        vec2_t projected_point = project(transformed_point);
 
         // Save the projected 2D vectoro in the array of projected points
         projected_points[i] = projected_point;
@@ -87,26 +96,22 @@ void update(void){
 }
 
 void render(void){
-
-    /* Deprecated due to upcoming color buffers.
+    /* Deprecated due to color buffers.
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Sets the drawing color to opaque red (R=255, G=0, B=0, A=255)
     SDL_RenderClear(renderer); // Clears the current rendering target (i.e., the screen or buffer) with the color set above → the screen will be filled with solid red.
     */
-
     clear_color_buffer(0xFF000000);
-
 
     // Loop all projected points and render them.
     for (int i = 0; i < N_POINTS; i++){
         vec2_t projected_point = projected_points[i];
         draw_rectangle(projected_point.x + window_width/2.0,
-                       projected_point.y + window_height/2.0,
+                       -projected_point.y + window_height/2.0,
                        4,
                        4,
                        0xFFFFFF00
         );
     }
-
     render_color_buffer();
     SDL_RenderPresent(renderer); // Displays the result on the window.
 }

@@ -6,10 +6,10 @@
 #
 CFLAGS += -Iinclude
 build:
-	gcc -Wall -std=c99 ${CFLAGS} ./src/*.c -lSDL2 -o ./renderer
+	gcc -Wall -std=c99 ${CFLAGS} ./src/*.c -lSDL2 -lm -o ./renderer
 
 debug:
-	gcc -Wall -std=c99 ${CFLAGS} -g ./src/*.c -lSDL2 -o ./renderer
+	gcc -Wall -std=c99 ${CFLAGS} -g ./src/*.c -lSDL2 -lm -o ./renderer
 
 run:
 	./renderer

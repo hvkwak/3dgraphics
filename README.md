@@ -10,6 +10,7 @@ make run
 
 ## Features
 This repository includes (latest-first):
+* Linear Transformations
 * Projection of Points: Orthographic, Isometric, and Perspective
 * Vectors and Points using C Structs
 * Modular structure with multiple header files
