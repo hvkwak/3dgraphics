@@ -10,6 +10,8 @@ make run
 
 ## Features
 This repository includes (latest-first):
+* Triangles and Vertices
+* Fixed Time Step with Delay Function
 * Linear Transformations
 * Projection of Points: Orthographic, Isometric, and Perspective
 * Vectors and Points using C Structs
