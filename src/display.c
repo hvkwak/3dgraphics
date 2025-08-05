@@ -9,6 +9,12 @@ SDL_Texture* color_buffer_texture = NULL;
 int window_width = 800;
 int window_height =600;
 
+/**
+ * @brief initializes an SDL window an its renderer.
+ *
+ * @param
+ * @return
+ */
 bool initialize_window(void){ // keep it void argument for no parameter.
 
     // Check if the SDL library initialization works
@@ -53,24 +59,25 @@ bool initialize_window(void){ // keep it void argument for no parameter.
     return true;
 }
 
-
+/**
+ * @brief frees color buffer, destroys the SDL window and its renderer.
+ *
+ * @param
+ * @return
+ */
 void destroy_window(void){
-    free(color_buffer);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit(); // reverse of init.
 }
 
-/// Exercise:
-/// Draw a background grid that fills the entire window.
-/// Lines should be rendered at every row/col multiple of 10.
+/// Exercise: Draw a background grid that fills the entire window. Lines should be rendered at every row/col multiple of 10.
 /**
  * @brief draws a background grid
  *
  * @param color: color of grid pixels
  * @return
  */
-
 void draw_grid(uint32_t color){
 
     int nx = window_width/10;
@@ -107,8 +114,7 @@ void draw_pixel(int x, int y, uint32_t color){
 }
 
 
-/// Exercise: Create a functiton called draw_rect() that renders a rectangle on
-///           the screen.
+/// Exercise: Create a functiton called draw_rect() that renders a rectangle on the screen.
 /**
 * @brief draws rectangle
 *
@@ -152,6 +158,42 @@ void draw_rectangle(int x, int y, int w, int h, uint32_t color){
     }
 }
 
+/**
+ * @brief implements DDA Algorithm to draw a line between two points.
+ *
+ * @param int x0: x coordinate of P0
+ *        int y0: y coordinate of P0
+ *        int x1: x coordinate of P1
+ *        int y1: y coordinate of P1
+ *        uint32_t : color of line points
+ * @return
+ */
+void draw_line(int x0, int y0, int x1, int y1, uint32_t color){
+    int delta_x = (x1 - x0);
+    int delta_y = (y1 - y0);
+
+    int side_length = abs(delta_x) >= abs(delta_y) ? abs(delta_x): abs(delta_y);
+
+    // Find how much we should increment in both x and y each step
+    float x_inc = delta_x / (float)side_length;
+    float y_inc = delta_y / (float)side_length;
+
+    float current_x = x0;
+    float current_y = y0;
+
+    for (int i = 0; i <= side_length; i++){
+        draw_pixel(round(current_x), round(current_y), 0xFFFFFF00);
+        current_x += x_inc;
+        current_y += y_inc;
+    }
+}
+
+/**
+ * @brief renders color buffer
+ *
+ * @param
+ * @return
+ */
 void render_color_buffer(void){
     // color buffer -> color buffer texture -> display texture
     SDL_UpdateTexture(
@@ -165,6 +207,12 @@ void render_color_buffer(void){
     SDL_RenderCopy(renderer, color_buffer_texture, NULL, NULL);
 }
 
+/**
+ * @brief clears color buffer.
+ *
+ * @param
+ * @return
+ */
 void clear_color_buffer(uint32_t color){
     for (int y = 0; y< window_height; y++){
         for (int x = 0; x < window_width; x++){
