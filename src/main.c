@@ -21,9 +21,12 @@ float fov_factor = 640.0;
  * @param
  * @return
  */
-void setup(void){
+bool setup(void){
     // Allocate the required bytes in memory for the color buffer.
     color_buffer = (uint32_t*)malloc(sizeof(uint32_t) * window_width * window_height);
+    if (color_buffer == NULL){
+        return false;
+    }
 
     // Create an SDL texture that is used to display the color buffer.
     color_buffer_texture = SDL_CreateTexture(
@@ -33,9 +36,16 @@ void setup(void){
         window_width,
         window_height
     );
+    if (color_buffer_texture == NULL){
+        return false;
+    }
 
     // Load the cube values in the mesh data structure
-    load_cube_mesh_data();
+    // load_cube_mesh_data();
+    if (load_obj_file_data("../assets/cube.obj")){
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -173,9 +183,15 @@ void render(void){
  * @return
  */
 void free_resources(void){
-    free(color_buffer);
-    array_free(mesh.vertices);
-    array_free(mesh.faces);
+    if (color_buffer != NULL){
+        free(color_buffer);
+    }
+    if (array_length(mesh.vertices) != 0){
+        array_free(mesh.vertices);
+    }
+    if (array_length(mesh.faces) != 0){
+        array_free(mesh.faces);
+    }
 }
 
 /**
@@ -188,7 +204,11 @@ int main(void){
 
     is_running = initialize_window();
 
-    setup();
+    if (!setup()){
+        destroy_window();
+        free_resources();
+        return 0;
+    };
 
     while (is_running) {
         process_input();

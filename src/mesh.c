@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <stdbool.h>
+#include "string.h"
 #include "mesh.h"
 #include "array.h"
 
-// global variable: declared in mesh.h, initialized in mesh.c
+// global variable: declared in mesh.h, initialized here in mesh.c
 mesh_t mesh = {
     .vertices = NULL,
     .faces = NULL,
@@ -52,4 +54,52 @@ void load_cube_mesh_data(void){
         face_t cube_face = cube_faces[i];
         array_push(mesh.faces, cube_face);
     }
+}
+
+bool load_obj_file_data(char * filename){
+    // TODO : Read the contents of .obj file.
+    // andn load the vertices and faces in
+    // our mesh.vertices and mesh.faces
+
+    FILE *file = fopen(filename, "r");
+    if (!file){
+        perror("Failed to open .obj file");
+        return false;
+    }
+
+    char line[512];
+    while (fgets(line, sizeof(line), file)){
+        if (strncmp(line, "v ", 2) == 0) {
+            vec3_t vertex;
+            int matched = sscanf(line+2, "%f %f %f", &vertex.x, &vertex.y, &vertex.z);
+            if (matched == 3){
+                array_push(mesh.vertices, vertex);
+            }else{
+                return false;
+            }
+        } else if (strncmp(line, "vt ", 3) == 0){
+            // TODO: implement what's for vt!
+        } else if (strncmp(line, "vn ", 3) == 0){
+            // TODO: implement what's for vn!
+
+        } else if (strncmp(line, "f ", 2) == 0){
+            face_t v;
+            face_t vt;
+            face_t vn;
+            int matched = sscanf(line + 2,
+                                 "%d/%d/%d %d/%d/%d %d/%d/%d",
+                                 &v.a, &vt.a, &vn.a,
+                                 &v.b, &vt.b, &vn.b,
+                                 &v.c, &vt.c, &vn.c);
+            if (matched == 9){
+                array_push(mesh.faces, v);
+            }else{
+                return false;
+            }
+            // TODO: implement what's for vt and vn.
+        }else{
+            continue;
+        }
+    }
+    return true;
 }
