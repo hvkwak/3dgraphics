@@ -13,6 +13,7 @@ triangle_t* triangles_to_render = NULL;
 vec3_t camera_position = {.x = 0, .y = 0, .z = -5};
 int previous_frame_time = 0;
 bool is_running = false;
+bool is_outcome_produced = false;
 float fov_factor = 640.0;
 
 /**
@@ -42,7 +43,7 @@ bool setup(void){
 
     // Load the cube values in the mesh data structure
     // load_cube_mesh_data();
-    if (load_obj_file_data("../assets/cube.obj")){
+    if (load_obj_file_data("./assets/f22.obj")){
         return true;
     }
     return false;
@@ -111,8 +112,8 @@ void update(void){
     triangles_to_render = NULL;
 
     mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.01;
-    mesh.rotation.z += 0.01;
+    mesh.rotation.y += 0.00;
+    mesh.rotation.z += 0.00;
 
     // loop over all trinagle faces of the mesh
     int num_faces = array_length(mesh.faces);
@@ -174,6 +175,11 @@ void render(void){
 
     render_color_buffer();
     SDL_RenderPresent(renderer); // Displays the result on the window.
+
+    if (!is_outcome_produced){
+        // TODO: implement to export current outcome, einmalig!
+        is_outcome_produced = true;
+    }
 }
 
 /**

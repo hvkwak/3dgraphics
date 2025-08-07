@@ -67,32 +67,42 @@ bool load_obj_file_data(char * filename){
         return false;
     }
 
-    char line[512];
+    char line[512]; // 512 characters per line expected. char: 1 byte
     while (fgets(line, sizeof(line), file)){
+        printf("Line = %s", line);
         if (strncmp(line, "v ", 2) == 0) {
+            // vertex
             vec3_t vertex;
             int matched = sscanf(line+2, "%f %f %f", &vertex.x, &vertex.y, &vertex.z);
+            // OR: sscanf(line, "v %f %f %f", &vertex.x, &vertex.y, &vertex.z);
             if (matched == 3){
                 array_push(mesh.vertices, vertex);
             }else{
                 return false;
             }
         } else if (strncmp(line, "vt ", 3) == 0){
-            // TODO: implement what's for vt!
+            // vertex texture
+            // TODO: implement what's for vt
         } else if (strncmp(line, "vn ", 3) == 0){
-            // TODO: implement what's for vn!
-
+            // vertex normal
+            // TODO: implement what's for vn
         } else if (strncmp(line, "f ", 2) == 0){
-            face_t v;
-            face_t vt;
-            face_t vn;
+            // face
+            int vertex_indices[3];
+            int texture_indices[3];
+            int normal_indices[3];
             int matched = sscanf(line + 2,
                                  "%d/%d/%d %d/%d/%d %d/%d/%d",
-                                 &v.a, &vt.a, &vn.a,
-                                 &v.b, &vt.b, &vn.b,
-                                 &v.c, &vt.c, &vn.c);
+                                 &vertex_indices[0], &texture_indices[0], &normal_indices[0],
+                                 &vertex_indices[1], &texture_indices[1], &normal_indices[1],
+                                 &vertex_indices[2], &texture_indices[2], &normal_indices[2]);
             if (matched == 9){
-                array_push(mesh.faces, v);
+                face_t face = {
+                    .a = vertex_indices[0],
+                    .b = vertex_indices[1],
+                    .c = vertex_indices[2],
+                };
+                array_push(mesh.faces, face);
             }else{
                 return false;
             }
