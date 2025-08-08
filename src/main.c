@@ -5,6 +5,7 @@
 #include "vector.h"
 #include "mesh.h"
 #include "array.h"
+#include "save.h"
 
 // Array of triangles that should be rendered frame by frame
 triangle_t* triangles_to_render = NULL;
@@ -23,9 +24,22 @@ float fov_factor = 640.0;
  * @return
  */
 bool setup(void){
+
     // Allocate the required bytes in memory for the color buffer.
     color_buffer = (uint32_t*)malloc(sizeof(uint32_t) * window_width * window_height);
     if (color_buffer == NULL){
+        return false;
+    }
+
+    // Allocate pixel buffer (ARGB8888 = 4 bytes per pixel) for BMP export
+    int rw, rh;
+    SDL_GetRendererOutputSize(renderer, &rw, &rh);
+    save_width  = rw;
+    save_height = rh;
+    save_pitch  = rw * 4;  // ARGB8888 => 4 bytes per pixel
+    save_pixels = (Uint8*)malloc(save_pitch * save_height);
+    if (!save_pixels) {
+        fprintf(stderr, "Memory allocation failed\n");
         return false;
     }
 
@@ -43,10 +57,10 @@ bool setup(void){
 
     // Load the cube values in the mesh data structure
     // load_cube_mesh_data();
-    if (load_obj_file_data("./assets/f22.obj")){
-        return true;
+    if (!load_obj_file_data("./assets/cube.obj")){
+        return false;
     }
-    return false;
+    return true;
 }
 
 /**
@@ -112,15 +126,14 @@ void update(void){
     triangles_to_render = NULL;
 
     mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.00;
-    mesh.rotation.z += 0.00;
+    mesh.rotation.y += 0.01;
+    mesh.rotation.z += 0.01;
 
     // loop over all trinagle faces of the mesh
     int num_faces = array_length(mesh.faces);
     for (int i = 0; i < num_faces; i++){
 
         face_t mesh_face = mesh.faces[i];
-
         vec3_t face_vertices[3];
         face_vertices[0] = mesh.vertices[mesh_face.a - 1]; // index starts with 1. Has to be minus 1.
         face_vertices[1] = mesh.vertices[mesh_face.b - 1];
@@ -130,16 +143,31 @@ void update(void){
 
         // Loop all three vertices of this current face and apply transformations
         for (int j = 0; j < 3; j++){
-            vec3_t transformed_vertex = face_vertices[j];
-            transformed_vertex = vec3_rotate_y(transformed_vertex, mesh.rotation.y);
-            transformed_vertex = vec3_rotate_x(transformed_vertex, mesh.rotation.x);
-            transformed_vertex = vec3_rotate_z(transformed_vertex, mesh.rotation.z);
+            face_vertices[j] = vec3_rotate_y(face_vertices[j], mesh.rotation.y);
+            face_vertices[j] = vec3_rotate_x(face_vertices[j], mesh.rotation.x);
+            face_vertices[j] = vec3_rotate_z(face_vertices[j], mesh.rotation.z);
 
             // Translate the vertex away from the camera
-            transformed_vertex.z = transformed_vertex.z - camera_position.z;
+            face_vertices[j].z = face_vertices[j].z - camera_position.z;
+        }
+
+        // Back-face Culling
+        vec3_t vec_AtoB = vec3_sub(face_vertices[1], face_vertices[0]);
+        vec3_t vec_AtoC = vec3_sub(face_vertices[2], face_vertices[0]);
+        vec3_t vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
+        vec_normal = vec3_div(vec_normal, vec3_length(vec_normal)); // normalize
+        vec3_t vec_camera = vec3_sub(camera_position, face_vertices[0]);
+        vec_camera = vec3_div(vec_camera, vec3_length(vec_camera)); // normalize
+        float angle = vec3_dot(vec_normal, vec_camera);
+        bool isVisible = angle > 0.2 ? true : false;
+        if (!isVisible){
+            continue;
+        }
+
+        for (int j = 0; j < 3; j++){
 
             // Project the current vertex
-            vec2_t projected_point = project(transformed_vertex);
+            vec2_t projected_point = project(face_vertices[j]);
 
             // Save the projected 2D Vector in the array of projected triangle.
             projected_triangle.points[j] = projected_point;
@@ -174,12 +202,41 @@ void render(void){
     array_free(triangles_to_render);
 
     render_color_buffer();
-    SDL_RenderPresent(renderer); // Displays the result on the window.
 
-    if (!is_outcome_produced){
-        // TODO: implement to export current outcome, einmalig!
-        is_outcome_produced = true;
+    if (!is_outcome_produced && SDL_GetTicks() > 4000){
+
+        // Read pixels from renderer
+        if (SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_ARGB8888, save_pixels, save_pitch) != 0) {
+            fprintf(stderr, "SDL_RenderReadPixels failed: %s\n", SDL_GetError());
+            return;
+        }
+
+        // Flip vertically (SDL stores top-to-bottom, PNG expects bottom-to-top)
+        flip_pixels_vertically(save_pixels, save_width, save_height, save_pitch);
+
+        // Wrap pixel data in SDL_Surface
+        surface = SDL_CreateRGBSurfaceFrom(save_pixels, save_width, save_height,
+                                           32, save_pitch,
+                                           0x00FF0000, // R
+                                           0x0000FF00, // G
+                                           0x000000FF, // B
+                                           0xFF000000  // A
+        );
+
+        if (!surface) {
+            fprintf(stderr, "SDL_CreateRGBSurfaceFrom failed: %s\n", SDL_GetError());
+            return;
+        }
+
+        // Save to BMP
+        if (SDL_SaveBMP(surface, "screenshot.bmp") == 0) {
+            printf("Screenshot saved as screenshot.bmp\n");
+            is_outcome_produced = true;
+        } else {
+            fprintf(stderr, "SDL_SaveBMP failed: %s\n", SDL_GetError());
+        }
     }
+    SDL_RenderPresent(renderer); // Displays the result on the window.
 }
 
 /**
@@ -189,6 +246,12 @@ void render(void){
  * @return
  */
 void free_resources(void){
+    if (save_pixels != NULL){
+        free(save_pixels);
+    }
+    if (surface != NULL){
+        SDL_FreeSurface(surface);
+    }
     if (color_buffer != NULL){
         free(color_buffer);
     }
@@ -208,13 +271,7 @@ void free_resources(void){
  */
 int main(void){
 
-    is_running = initialize_window();
-
-    if (!setup()){
-        destroy_window();
-        free_resources();
-        return 0;
-    };
+    is_running = initialize_window() && setup();
 
     while (is_running) {
         process_input();
