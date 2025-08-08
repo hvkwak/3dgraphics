@@ -10,6 +10,7 @@ make run
 
 ## Features (latest-first)
 **Based on the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com))**
+* Backface Culling: Keep "back" faces invisible
 * Dynamic Arrays and Reading OBJ File Content
 * DDA Line Drawing Algorithm
 * Triangles and Vertices
