@@ -31,15 +31,24 @@ bool setup(void){
         return false;
     }
 
-    // Allocate pixel buffer (ARGB8888 = 4 bytes per pixel) for BMP export
-    int rw, rh;
-    SDL_GetRendererOutputSize(renderer, &rw, &rh);
-    save_width  = rw;
-    save_height = rh;
-    save_pitch  = rw * 4;  // ARGB8888 => 4 bytes per pixel
+    // Allocate downsized pixel buffer (ARGB8888 = 4 bytes per pixel) for BMP export
+    save_width  = window_width/2;
+    save_height = window_height/2;
+    save_pitch  = save_width * 4;  // ARGB8888 => 4 bytes per pixel
     save_pixels = (Uint8*)malloc(save_pitch * save_height);
     if (!save_pixels) {
         fprintf(stderr, "Memory allocation failed\n");
+        return false;
+    }
+    // Better downscale quality
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2"); // "1" linear, "2" best available
+
+    save_texture = SDL_CreateTexture(renderer,
+                                 SDL_PIXELFORMAT_ARGB8888,
+                                 SDL_TEXTUREACCESS_TARGET,
+                                 save_width, save_height);
+    if (!save_texture) {
+        fprintf(stderr, "CreateTexture failed: %s\n", SDL_GetError());
         return false;
     }
 
@@ -201,9 +210,24 @@ void render(void){
     // Clear the array of triangles to render every frame loop
     array_free(triangles_to_render);
 
-    render_color_buffer();
+    // render_color_buffer();
+    // color buffer -> color buffer texture
+    SDL_UpdateTexture(
+        color_buffer_texture,
+        NULL,
+        color_buffer,
+        (int)(window_width*sizeof(uint32_t))
+    );
 
-    if (!is_outcome_produced && SDL_GetTicks() > 4000){
+
+    if (!is_outcome_produced && SDL_GetTicks() > 2000){
+
+        // Render full-res texture into small_rt at half size
+        SDL_SetRenderTarget(renderer, save_texture);
+        SDL_RenderClear(renderer);
+        SDL_Rect dst = {0, 0, save_width, save_height};
+        SDL_RenderCopy(renderer, color_buffer_texture, NULL, &dst);
+        SDL_RenderFlush(renderer);
 
         // Read pixels from renderer
         if (SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_ARGB8888, save_pixels, save_pitch) != 0) {
@@ -211,36 +235,40 @@ void render(void){
             return;
         }
 
-        // Flip vertically (SDL stores top-to-bottom, PNG expects bottom-to-top)
-        flip_pixels_vertically(save_pixels, save_width, save_height, save_pitch);
-
         // Wrap pixel data in SDL_Surface
-        surface = SDL_CreateRGBSurfaceFrom(save_pixels, save_width, save_height,
-                                           32, save_pitch,
-                                           0x00FF0000, // R
-                                           0x0000FF00, // G
-                                           0x000000FF, // B
-                                           0xFF000000  // A
+        save_surface = SDL_CreateRGBSurfaceFrom(save_pixels,
+                                                save_width,
+                                                save_height,
+                                                32,
+                                                save_pitch,
+                                                0x00FF0000, // R
+                                                0x0000FF00, // G
+                                                0x000000FF, // B
+                                                0xFF000000  // A
         );
 
-        if (!surface) {
+        if (!save_surface) {
             fprintf(stderr, "SDL_CreateRGBSurfaceFrom failed: %s\n", SDL_GetError());
             return;
         }
 
         // Save to BMP
-        if (SDL_SaveBMP(surface, "screenshot.bmp") == 0) {
-            printf("Screenshot saved as screenshot.bmp\n");
+        if (SDL_SaveBMP(save_surface, "outcome.bmp") == 0) {
+            printf("Screenshot saved as outcome.bmp\n");
             is_outcome_produced = true;
         } else {
             fprintf(stderr, "SDL_SaveBMP failed: %s\n", SDL_GetError());
         }
+        // Restore render target back to window
+        SDL_SetRenderTarget(renderer, NULL);
     }
+    // color buffer texture -> display texture
+    SDL_RenderCopy(renderer, color_buffer_texture, NULL, NULL);
     SDL_RenderPresent(renderer); // Displays the result on the window.
 }
 
 /**
- * @brief frees the memory that was dynamically allocated by the program
+ * @brief frees the malloc memory 
  *
  * @param
  * @return
@@ -248,9 +276,6 @@ void render(void){
 void free_resources(void){
     if (save_pixels != NULL){
         free(save_pixels);
-    }
-    if (surface != NULL){
-        SDL_FreeSurface(surface);
     }
     if (color_buffer != NULL){
         free(color_buffer);
@@ -271,7 +296,7 @@ void free_resources(void){
  */
 int main(void){
 
-    is_running = initialize_window() && setup();
+    is_running = initialize() && setup();
 
     while (is_running) {
         process_input();
@@ -279,7 +304,7 @@ int main(void){
         render();
     }
 
-    destroy_window();
+    destroy_objects();
     free_resources();
     return 0;
 }

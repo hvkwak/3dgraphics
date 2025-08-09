@@ -1,4 +1,5 @@
 #include "display.h"
+#include "save.h"
 
 // declared in display.h
 SDL_Window *window = NULL;
@@ -15,7 +16,7 @@ int window_height = 600;
  * @param
  * @return
  */
-bool initialize_window(void){ // keep it void argument for no parameter.
+bool initialize(void){ // keep it void argument for no parameter.
 
     // Check if the SDL library initialization works
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0){
@@ -65,7 +66,10 @@ bool initialize_window(void){ // keep it void argument for no parameter.
  * @param
  * @return
  */
-void destroy_window(void){
+void destroy_objects(void){
+    SDL_DestroyTexture(color_buffer_texture);
+    SDL_DestroyTexture(save_texture);
+    SDL_FreeSurface(save_surface);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit(); // reverse of init.
@@ -195,16 +199,7 @@ void draw_line(int x0, int y0, int x1, int y1, uint32_t color){
  * @return
  */
 void render_color_buffer(void){
-    // color buffer -> color buffer texture -> display texture
-    SDL_UpdateTexture(
-        color_buffer_texture,
-        NULL,
-        color_buffer,
-        (int)(window_width*sizeof(uint32_t))
-    );
 
-    // color buffer texture -> display texture
-    SDL_RenderCopy(renderer, color_buffer_texture, NULL, NULL);
 }
 
 /**

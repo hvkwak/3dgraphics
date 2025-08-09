@@ -5,7 +5,8 @@ int save_width = 0;
 int save_height = 0;
 Uint8* save_pixels = NULL;
 int save_pitch = 0;
-SDL_Surface *surface = NULL;
+SDL_Surface *save_surface = NULL;
+SDL_Texture *save_texture = NULL;
 
 void flip_pixels_vertically(Uint8* pixels, int width, int height, int pitch) {
     Uint8* temp_row = (Uint8*)malloc(pitch);
@@ -18,6 +19,5 @@ void flip_pixels_vertically(Uint8* pixels, int width, int height, int pitch) {
         memcpy(row1, row2, pitch);
         memcpy(row2, temp_row, pitch);
     }
-
     free(temp_row);
 }
