@@ -42,7 +42,12 @@ vec2_t vec2_div(vec2_t v, float factor){
 
 float vec2_dot(vec2_t a, vec2_t b){
     return (a.x*b.x) + (a.y*b.y);
+}
 
+void vec2_normalize(vec2_t* v){
+    float length = sqrt(v->x*v->x + v->y*v->y);
+    v->x = v->x / length;
+    v->y = v->y / length;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -86,8 +91,16 @@ vec3_t vec3_div(vec3_t v, float factor){
     return result;
 }
 
+void vec3_normalize(vec3_t* v){
+    float length = sqrt(v->x*v->x + v->y*v->y + v->z*v->z);
+    v->x = v->x / length;
+    v->y = v->y / length;
+    v->z = v->z / length;
+}
+
 /**
  * @brief returns cross product of the two input vectors
+ *        based on left-handed coordinate system
  *
  * @param vec3_t a: 3D vector a
  *        vec3_t b: 3D vector b

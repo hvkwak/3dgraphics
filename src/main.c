@@ -11,11 +11,34 @@
 triangle_t* triangles_to_render = NULL;
 
 // other global variables
-vec3_t camera_position = {.x = 0, .y = 0, .z = -5};
+vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
 int previous_frame_time = 0;
 bool is_running = false;
 bool is_outcome_produced = false;
 float fov_factor = 640.0;
+
+/**
+ * @brief renders "triangles_to_render"
+ *
+ * @param
+ * @return
+ */
+void draw_triangle(){
+    // TODO: keep it this way, generalize later.
+    int num_triangles = array_length(triangles_to_render);
+    for (int i = 0; i < num_triangles; i++) {
+        // render all vertex points
+        triangle_t triangle = triangles_to_render[i];
+        draw_rectangle(triangle.points[0].x, triangle.points[0].y, 3, 3,0xFFFFFF00);
+        draw_rectangle(triangle.points[1].x, triangle.points[1].y, 3, 3,0xFFFFFF00);
+        draw_rectangle(triangle.points[2].x, triangle.points[2].y, 3, 3,0xFFFFFF00);
+
+        // draw all edges
+        draw_line(triangle.points[0].x, triangle.points[0].y, triangle.points[1].x,triangle.points[1].y, 0xFFFFFF00);
+        draw_line(triangle.points[1].x, triangle.points[1].y, triangle.points[2].x,triangle.points[2].y, 0xFFFFFF00);
+        draw_line(triangle.points[2].x, triangle.points[2].y, triangle.points[0].x,triangle.points[0].y, 0xFFFFFF00);
+    }
+}
 
 /**
  * @brief setup the color buffer and color buffer texture
@@ -134,9 +157,9 @@ void update(void){
     // Initialize the array of triangles to render
     triangles_to_render = NULL;
 
-    mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.01;
-    mesh.rotation.z += 0.01;
+    mesh.rotation.x += 0.03;
+    mesh.rotation.y += 0.03;
+    mesh.rotation.z += 0.03;
 
     // loop over all trinagle faces of the mesh
     int num_faces = array_length(mesh.faces);
@@ -156,23 +179,28 @@ void update(void){
             face_vertices[j] = vec3_rotate_x(face_vertices[j], mesh.rotation.x);
             face_vertices[j] = vec3_rotate_z(face_vertices[j], mesh.rotation.z);
 
-            // Translate the vertex away from the camera
-            face_vertices[j].z = face_vertices[j].z - camera_position.z;
+            // Translate the vertex away from the camera(0, 0, 0)
+            face_vertices[j].z = face_vertices[j].z + 5;
         }
 
         // Back-face Culling
-        vec3_t vec_AtoB = vec3_sub(face_vertices[1], face_vertices[0]);
-        vec3_t vec_AtoC = vec3_sub(face_vertices[2], face_vertices[0]);
+        vec3_t vec_AtoB = vec3_sub(face_vertices[1], face_vertices[0]); // B-A
+        vec3_normalize(&vec_AtoB);
+        vec3_t vec_AtoC = vec3_sub(face_vertices[2], face_vertices[0]); // C-A
+        vec3_normalize(&vec_AtoC);
         vec3_t vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
-        vec_normal = vec3_div(vec_normal, vec3_length(vec_normal)); // normalize
-        vec3_t vec_camera = vec3_sub(camera_position, face_vertices[0]);
-        vec_camera = vec3_div(vec_camera, vec3_length(vec_camera)); // normalize
+        vec3_normalize(&vec_normal);
+
+        vec3_t vec_camera = vec3_sub(camera_position, face_vertices[0]); // from A to camera position
+        vec3_normalize(&vec_camera);
+
         float angle = vec3_dot(vec_normal, vec_camera);
-        bool isVisible = angle > 0.2 ? true : false;
+        bool isVisible = angle > 0.0 ? true : false;
         if (!isVisible){
             continue;
         }
 
+        // It is visible. Project the face.
         for (int j = 0; j < 3; j++){
 
             // Project the current vertex
@@ -191,21 +219,11 @@ void render(void){
 
     clear_color_buffer(0xFF000000);
 
+    draw_grid(0xFFAAAAAA);
+
     // Loop all projected points and render them.
-    int num_triangles = array_length(triangles_to_render);
-    for (int i = 0; i < num_triangles; i++){
+    draw_triangle();
 
-        // render all vertex points
-        triangle_t triangle = triangles_to_render[i];
-        draw_rectangle(triangle.points[0].x, triangle.points[0].y, 3, 3, 0xFFFFFF00);
-        draw_rectangle(triangle.points[1].x, triangle.points[1].y, 3, 3, 0xFFFFFF00);
-        draw_rectangle(triangle.points[2].x, triangle.points[2].y, 3, 3, 0xFFFFFF00);
-
-        // draw all edges
-        draw_line(triangle.points[0].x, triangle.points[0].y, triangle.points[1].x, triangle.points[1].y, 0xFFFFFF00);
-        draw_line(triangle.points[1].x, triangle.points[1].y, triangle.points[2].x, triangle.points[2].y, 0xFFFFFF00);
-        draw_line(triangle.points[2].x, triangle.points[2].y, triangle.points[0].x, triangle.points[0].y, 0xFFFFFF00);
-    }
 
     // Clear the array of triangles to render every frame loop
     array_free(triangles_to_render);

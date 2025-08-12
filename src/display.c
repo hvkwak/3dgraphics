@@ -91,7 +91,7 @@ void draw_grid(uint32_t color){
     for (int y = 1; y < ny; y++){
         for (int x = 0; x < window_width; x++){
             color_buffer[window_width*y*10 + x] = color;
-        }
+         }
     }
 
     // vertical lines
