@@ -17,27 +17,23 @@ bool is_running = false;
 bool is_outcome_produced = false;
 float fov_factor = 640.0;
 
+
 /**
  * @brief renders "triangles_to_render"
  *
  * @param
  * @return
  */
-void draw_triangle(){
-    // TODO: keep it this way, generalize later.
-    int num_triangles = array_length(triangles_to_render);
-    for (int i = 0; i < num_triangles; i++) {
-        // render all vertex points
-        triangle_t triangle = triangles_to_render[i];
-        draw_rectangle(triangle.points[0].x, triangle.points[0].y, 3, 3,0xFFFFFF00);
-        draw_rectangle(triangle.points[1].x, triangle.points[1].y, 3, 3,0xFFFFFF00);
-        draw_rectangle(triangle.points[2].x, triangle.points[2].y, 3, 3,0xFFFFFF00);
+void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
+    // TODO: move it to triangle.c!
+    draw_rectangle(x0, y0, 3, 3, color);
+    draw_rectangle(x1, y1, 3, 3, color);
+    draw_rectangle(x2, y2, 3, 3, color);
 
-        // draw all edges
-        draw_line(triangle.points[0].x, triangle.points[0].y, triangle.points[1].x,triangle.points[1].y, 0xFFFFFF00);
-        draw_line(triangle.points[1].x, triangle.points[1].y, triangle.points[2].x,triangle.points[2].y, 0xFFFFFF00);
-        draw_line(triangle.points[2].x, triangle.points[2].y, triangle.points[0].x,triangle.points[0].y, 0xFFFFFF00);
-    }
+    // draw all edges
+    draw_line(x0, y0, x1, y1, color);
+    draw_line(x1, y1, x2, y2, color);
+    draw_line(x2, y2, x0, y0, color);
 }
 
 /**
@@ -219,10 +215,33 @@ void render(void){
 
     clear_color_buffer(0xFF000000);
 
-    draw_grid(0xFFAAAAAA);
+    //draw_grid(0xFFAAAAAA);
 
-    // Loop all projected points and render them.
-    draw_triangle();
+    // Loop all projected points and render them
+    int num_triangles = array_length(triangles_to_render);
+    for (int i = 0; i < num_triangles; i++) {
+        // render all vertex points
+        triangle_t triangle = triangles_to_render[i];
+
+        // Draw filled triangle
+        draw_filled_triangle(triangle.points[0].x,
+                             triangle.points[0].y,
+                             triangle.points[1].x,
+                             triangle.points[1].y,
+                             triangle.points[2].x,
+                             triangle.points[2].y,
+                             0xFFFFFFFF);
+
+        // Draw unfilled triangle
+        draw_triangle(triangle.points[0].x,
+                      triangle.points[0].y,
+                      triangle.points[1].x,
+                      triangle.points[1].y,
+                      triangle.points[2].x,
+                      triangle.points[2].y,
+                      0xFF000000);
+    }
+
 
 
     // Clear the array of triangles to render every frame loop
@@ -238,7 +257,7 @@ void render(void){
     );
 
 
-    if (!is_outcome_produced && SDL_GetTicks() > 2000){
+    if (!is_outcome_produced && SDL_GetTicks() > 2500){
 
         // Render full-res texture into small_rt at half size
         SDL_SetRenderTarget(renderer, save_texture);

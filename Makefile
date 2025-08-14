@@ -15,5 +15,5 @@ run:
 	./src/renderer
 
 clean:
-	rm renderer
+	rm ./src/renderer
 # end

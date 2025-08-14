@@ -18,13 +18,14 @@ void int_swap(int* a, int* b){
  *
  * @param triangle coordiantes
  * @return
+ *
+ *                   P0 (x0, y0)
+ *                   /\
+ *                  /  \
+ *          slope1 /    \ slope2
+ *                /      \
+ *    (x1, y1) P1 -------- (x2, y2)
  */
-//                  P0 (x0, y0)
-//                 /\
-//                /  \
-//        slope1 /    \ slope2
-//              /      \
-//  (x1, y1) P1 -------- (x2, y2)
 void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color){
     // find two slopes: two triangle legs.
     // Note that we find slop with respect to delta y.
@@ -43,13 +44,44 @@ void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, u
     }
 }
 
-void fill_flat_top_triangle(int x1, int y1, int Mx, int My, int x2, int y2, uint32_t color){
-    // TODO: Draw flat-top triangle
+
+/**
+ * @brief fills flat top triangle.
+ *
+ * @param triangle coordiantes
+ * @return
+ *
+ *
+ *   (x0, y0) P1 -------- (x1, y1)
+ *              \_       \
+ *                \_      \
+ *                  \_     \
+ *                    \_    \
+ *                      \_   \
+ *                        \_  \
+ *                          \_ \
+ *                            \_\ P2 (x2, y2)
+ *
+ *
+ *
+ */
+void fill_flat_top_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color){
+    // Draw flat-top triangle
+    // Note that we find slop with respect to delta y.
+    float inv_slope1 = (float)(x2-x0)/(y2-y0); // left leg
+    float inv_slope2 = (float)(x2-x1)/(y2-y1); // right leg
+
+    // Start x_start and x_end from the top vertex (x0, y0)
+    float x_start = x2;
+    float x_end = x2;
+
+    // Loop all the scanlines from top to bottom
+    for (int y = y2; y >= y0; y--){
+        draw_line((int)x_start, y, (int)x_end, y, color);
+        x_start -= inv_slope1;
+        x_end -= inv_slope2;
+    }
 };
-
-
-
-
 
 /**
  * @brief draws filled triangle based on flat-top, flat-bottom triangle.

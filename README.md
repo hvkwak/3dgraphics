@@ -10,7 +10,7 @@ make run
 
 ## Features (latest-first)
 **Based on the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com))**
-* Triangle Rasterization
+* Triangle Rasterization: Flat-Top, Flat-Bottom Algorithm
 * Vector Operations Recap
 * Backface Culling: Keep "back" faces invisible
 * Dynamic Arrays and Reading OBJ File Content
