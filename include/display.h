@@ -16,6 +16,12 @@ extern SDL_Texture* color_buffer_texture;
 extern int window_width;
 extern int window_height;
 
+//
+extern bool is_backface;
+extern bool is_wireframe;
+extern bool is_redvertex;
+extern bool is_filledtriangle;
+
 bool initialize(void);
 void destroy_objects(void);
 void draw_grid(uint32_t color);

@@ -14,27 +14,12 @@ triangle_t* triangles_to_render = NULL;
 vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
 int previous_frame_time = 0;
 bool is_running = false;
-bool is_outcome_produced = false;
+bool is_outcome = false;
+bool is_backface = false;
+bool is_wireframe = false;
+bool is_redvertex = false;
+bool is_filledtriangle = false;
 float fov_factor = 640.0;
-
-
-/**
- * @brief renders "triangles_to_render"
- *
- * @param
- * @return
- */
-void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
-    // TODO: move it to triangle.c!
-    draw_rectangle(x0, y0, 3, 3, color);
-    draw_rectangle(x1, y1, 3, 3, color);
-    draw_rectangle(x2, y2, 3, 3, color);
-
-    // draw all edges
-    draw_line(x0, y0, x1, y1, color);
-    draw_line(x1, y1, x2, y2, color);
-    draw_line(x2, y2, x0, y0, color);
-}
 
 /**
  * @brief setup the color buffer and color buffer texture
@@ -84,10 +69,17 @@ bool setup(void){
     }
 
     // Load the cube values in the mesh data structure
-    // load_cube_mesh_data();
+#ifdef DEBUG
+    // NOTE: For Debugging in Emacs
+    if (!load_obj_file_data("../assets/cube.obj")){
+        return false;
+    }
+#else
     if (!load_obj_file_data("./assets/cube.obj")){
         return false;
     }
+#endif
+
     return true;
 }
 
@@ -109,8 +101,41 @@ void process_input(void){
         case SDL_KEYDOWN:
             if (event.key.keysym.sym == SDLK_ESCAPE){
                 is_running = false;
+                break;
             }
-            break;
+            else if (event.key.keysym.sym == SDLK_1 || event.key.keysym.sym == SDLK_KP_1){
+                // 1 Displays the wireframe and a small red dot for each triangle vertex
+                is_wireframe = true;
+                is_redvertex = true;
+                is_filledtriangle = false;
+                break;
+            }else if (event.key.keysym.sym == SDLK_2 || event.key.keysym.sym == SDLK_KP_2){
+                // 2 Displays only the wireframe lines
+                is_wireframe = true;
+                is_redvertex = false;
+                is_filledtriangle = false;
+                break;
+            }else if (event.key.keysym.sym == SDLK_3 || event.key.keysym.sym == SDLK_KP_3){
+                // 3 Displays filled triangles with a solid color
+                is_wireframe = false;
+                is_redvertex = false;
+                is_filledtriangle = true;
+                break;
+            }else if (event.key.keysym.sym == SDLK_4 || event.key.keysym.sym == SDLK_KP_4){
+                // 4 Displays both filled triangles and wireframe lines
+                is_wireframe = true;
+                is_redvertex = false;
+                is_filledtriangle = true;
+                break;
+            }else if (event.key.keysym.sym == SDLK_c){
+                // C Enables back-face culling c
+                is_backface = true;
+                break;
+            }else if (event.key.keysym.sym == SDLK_d){
+                // D Disables the back-face culling
+                is_backface = false;
+                break;
+            }
     }
 }
 
@@ -153,9 +178,9 @@ void update(void){
     // Initialize the array of triangles to render
     triangles_to_render = NULL;
 
-    mesh.rotation.x += 0.03;
-    mesh.rotation.y += 0.03;
-    mesh.rotation.z += 0.03;
+    mesh.rotation.x += 0.01;
+    mesh.rotation.y += 0.01;
+    mesh.rotation.z += 0.01;
 
     // loop over all trinagle faces of the mesh
     int num_faces = array_length(mesh.faces);
@@ -180,23 +205,24 @@ void update(void){
         }
 
         // Back-face Culling
-        vec3_t vec_AtoB = vec3_sub(face_vertices[1], face_vertices[0]); // B-A
-        vec3_normalize(&vec_AtoB);
-        vec3_t vec_AtoC = vec3_sub(face_vertices[2], face_vertices[0]); // C-A
-        vec3_normalize(&vec_AtoC);
-        vec3_t vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
-        vec3_normalize(&vec_normal);
+        if (is_backface){
+            vec3_t vec_AtoB = vec3_sub(face_vertices[1], face_vertices[0]); // B-A
+            vec3_normalize(&vec_AtoB);
+            vec3_t vec_AtoC = vec3_sub(face_vertices[2], face_vertices[0]); // C-A
+            vec3_normalize(&vec_AtoC);
+            vec3_t vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
+            vec3_normalize(&vec_normal);
+            vec3_t vec_camera = vec3_sub(camera_position, face_vertices[0]); // from A to camera position
+            vec3_normalize(&vec_camera);
 
-        vec3_t vec_camera = vec3_sub(camera_position, face_vertices[0]); // from A to camera position
-        vec3_normalize(&vec_camera);
-
-        float angle = vec3_dot(vec_normal, vec_camera);
-        bool isVisible = angle > 0.0 ? true : false;
-        if (!isVisible){
-            continue;
+            float angle = vec3_dot(vec_normal, vec_camera);
+            bool isVisible = angle > 0.0 ? true : false;
+            if (!isVisible) {
+              continue;
+            }
         }
 
-        // It is visible. Project the face.
+        // Project the face.
         for (int j = 0; j < 3; j++){
 
             // Project the current vertex
@@ -223,26 +249,29 @@ void render(void){
         // render all vertex points
         triangle_t triangle = triangles_to_render[i];
 
-        // Draw filled triangle
-        draw_filled_triangle(triangle.points[0].x,
-                             triangle.points[0].y,
-                             triangle.points[1].x,
-                             triangle.points[1].y,
-                             triangle.points[2].x,
-                             triangle.points[2].y,
-                             0xFFFFFFFF);
+        if (is_filledtriangle){
+            // Draw filled triangle
+            draw_filled_triangle(triangle.points[0].x, triangle.points[0].y,
+                                 triangle.points[1].x, triangle.points[1].y,
+                                 triangle.points[2].x, triangle.points[2].y,
+                                 0xFFAAAAAA);
+        }
 
-        // Draw unfilled triangle
-        draw_triangle(triangle.points[0].x,
-                      triangle.points[0].y,
-                      triangle.points[1].x,
-                      triangle.points[1].y,
-                      triangle.points[2].x,
-                      triangle.points[2].y,
-                      0xFF000000);
+        if (is_wireframe) {
+          draw_line(triangle.points[0].x, triangle.points[0].y,
+                    triangle.points[1].x, triangle.points[1].y, 0xFF000000);
+          draw_line(triangle.points[1].x, triangle.points[1].y,
+                    triangle.points[2].x, triangle.points[2].y, 0xFF000000);
+          draw_line(triangle.points[2].x, triangle.points[2].y,
+                    triangle.points[0].x, triangle.points[0].y, 0xFF000000);
+        }
+
+        if (is_redvertex){
+            draw_rectangle(triangle.points[0].x, triangle.points[0].y, 3, 3, 0xFFFF0000);
+            draw_rectangle(triangle.points[1].x, triangle.points[1].y, 3, 3, 0xFFFF0000);
+            draw_rectangle(triangle.points[2].x, triangle.points[2].y, 3, 3, 0xFFFF0000);
+        }
     }
-
-
 
     // Clear the array of triangles to render every frame loop
     array_free(triangles_to_render);
@@ -256,8 +285,8 @@ void render(void){
         (int)(window_width*sizeof(uint32_t))
     );
 
-
-    if (!is_outcome_produced && SDL_GetTicks() > 2500){
+    // TODO: let it export in GIF.
+    if (!is_outcome && SDL_GetTicks() > 2500){
 
         // Render full-res texture into small_rt at half size
         SDL_SetRenderTarget(renderer, save_texture);
@@ -292,7 +321,7 @@ void render(void){
         // Save to BMP
         if (SDL_SaveBMP(save_surface, "outcome.bmp") == 0) {
             printf("Screenshot saved as outcome.bmp\n");
-            is_outcome_produced = true;
+            is_outcome = true;
         } else {
             fprintf(stderr, "SDL_SaveBMP failed: %s\n", SDL_GetError());
         }

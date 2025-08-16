@@ -9,7 +9,7 @@ build:
 	gcc -Wall -std=c99 ${CFLAGS} ./src/*.c -lSDL2 -lm -o ./src/renderer
 
 debug:
-	gcc -Wall -std=c99 ${CFLAGS} -g ./src/*.c -lSDL2 -lm -o ./src/renderer
+	gcc -Wall -std=c99 ${CFLAGS} -g -DDEBUG ./src/*.c -lSDL2 -lm -o ./src/renderer
 
 run:
 	./src/renderer
