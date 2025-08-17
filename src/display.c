@@ -4,7 +4,7 @@
 // declared in display.h
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
-uint32_t* color_buffer = NULL;
+color_t* color_buffer = NULL;
 SDL_Texture* color_buffer_texture = NULL;
 int window_width = 800;
 int window_height = 600;
@@ -82,7 +82,7 @@ void destroy_objects(void){
  * @param color: color of grid pixels
  * @return
  */
-void draw_grid(uint32_t color){
+void draw_grid(color_t color){
 
     int nx = window_width/10;
     int ny = window_height/10;
@@ -110,7 +110,7 @@ void draw_grid(uint32_t color){
  *        color: color of pixel
  * @return
  */
-void draw_pixel(int x, int y, uint32_t color){
+void draw_pixel(int x, int y, color_t color){
 
     if (0 <= x && x < window_width && 0 <= y && y < window_height){
         color_buffer[window_width*y + x] = color;
@@ -129,7 +129,7 @@ void draw_pixel(int x, int y, uint32_t color){
 * y: height of the rectangle
 * @return
 */
-void draw_rectangle(int x, int y, int w, int h, uint32_t color){
+void draw_rectangle(int x, int y, int w, int h, color_t color){
 
     // check arguments
     if (x < 0 || x >= window_width) {
@@ -169,10 +169,10 @@ void draw_rectangle(int x, int y, int w, int h, uint32_t color){
  *        int y0: y coordinate of P0
  *        int x1: x coordinate of P1
  *        int y1: y coordinate of P1
- *        uint32_t : color of line points
+ *        color_t : color of line points
  * @return
  */
-void draw_line(int x0, int y0, int x1, int y1, uint32_t color){
+void draw_line(int x0, int y0, int x1, int y1, color_t color){
     int delta_x = (x1 - x0);
     int delta_y = (y1 - y0);
 
@@ -208,7 +208,7 @@ void render_color_buffer(void){
  * @param
  * @return
  */
-void clear_color_buffer(uint32_t color){
+void clear_color_buffer(color_t color){
     for (int y = 0; y< window_height; y++){
         for (int x = 0; x < window_width; x++){
             color_buffer[(window_width*y) + x] = color;

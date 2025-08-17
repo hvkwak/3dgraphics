@@ -10,15 +10,25 @@
 // Array of triangles that should be rendered frame by frame
 triangle_t* triangles_to_render = NULL;
 
+// render/cull mode enums
+enum cull_method {
+    CULL_NONE,
+    CULL_BACKFACE
+} cull_method;
+
+enum render_method {
+    RENDER_WIRE,
+    RENDER_WIRE_VERTEX,
+    RENDER_FILL_TRIANGLE,
+    RENDER_FILL_TRIANGLE_WIRE
+} render_method;
+
 // other global variables
 vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
 int previous_frame_time = 0;
 bool is_running = false;
 bool is_outcome = false;
-bool is_backface = false;
-bool is_wireframe = false;
-bool is_redvertex = false;
-bool is_filledtriangle = false;
+
 float fov_factor = 640.0;
 
 /**
@@ -29,8 +39,12 @@ float fov_factor = 640.0;
  */
 bool setup(void){
 
+    // Initialize render mode and triangle culling method
+    render_method = RENDER_WIRE;
+    cull_method = CULL_BACKFACE;
+
     // Allocate the required bytes in memory for the color buffer.
-    color_buffer = (uint32_t*)malloc(sizeof(uint32_t) * window_width * window_height);
+    color_buffer = (color_t*)malloc(sizeof(color_t) * window_width * window_height);
     if (color_buffer == NULL){
         return false;
     }
@@ -68,17 +82,20 @@ bool setup(void){
         return false;
     }
 
+    // load mesh
+    load_cube_mesh_data();
+
     // Load the cube values in the mesh data structure
-#ifdef DEBUG
-    // NOTE: For Debugging in Emacs
-    if (!load_obj_file_data("../assets/cube.obj")){
-        return false;
-    }
-#else
-    if (!load_obj_file_data("./assets/cube.obj")){
-        return false;
-    }
-#endif
+/* #ifdef DEBUG */
+/*     // NOTE: For Debugging in Emacs */
+/*     if (!load_obj_file_data("../assets/cube.obj")){ */
+/*         return false; */
+/*     } */
+/* #else */
+/*     if (!load_obj_file_data("./assets/cube.obj")){ */
+/*         return false; */
+/*     } */
+/* #endif */
 
     return true;
 }
@@ -105,35 +122,27 @@ void process_input(void){
             }
             else if (event.key.keysym.sym == SDLK_1 || event.key.keysym.sym == SDLK_KP_1){
                 // 1 Displays the wireframe and a small red dot for each triangle vertex
-                is_wireframe = true;
-                is_redvertex = true;
-                is_filledtriangle = false;
+                render_method = RENDER_WIRE_VERTEX;
                 break;
             }else if (event.key.keysym.sym == SDLK_2 || event.key.keysym.sym == SDLK_KP_2){
                 // 2 Displays only the wireframe lines
-                is_wireframe = true;
-                is_redvertex = false;
-                is_filledtriangle = false;
+                render_method = RENDER_WIRE;
                 break;
             }else if (event.key.keysym.sym == SDLK_3 || event.key.keysym.sym == SDLK_KP_3){
                 // 3 Displays filled triangles with a solid color
-                is_wireframe = false;
-                is_redvertex = false;
-                is_filledtriangle = true;
+                render_method = RENDER_FILL_TRIANGLE;
                 break;
             }else if (event.key.keysym.sym == SDLK_4 || event.key.keysym.sym == SDLK_KP_4){
                 // 4 Displays both filled triangles and wireframe lines
-                is_wireframe = true;
-                is_redvertex = false;
-                is_filledtriangle = true;
+                render_method = RENDER_FILL_TRIANGLE_WIRE;
                 break;
             }else if (event.key.keysym.sym == SDLK_c){
                 // C Enables back-face culling c
-                is_backface = true;
+                cull_method = CULL_BACKFACE;
                 break;
             }else if (event.key.keysym.sym == SDLK_d){
                 // D Disables the back-face culling
-                is_backface = false;
+                cull_method = CULL_NONE;
                 break;
             }
     }
@@ -178,9 +187,9 @@ void update(void){
     // Initialize the array of triangles to render
     triangles_to_render = NULL;
 
-    mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.01;
-    mesh.rotation.z += 0.01;
+    mesh.rotation.x += 0.03;
+    mesh.rotation.y += 0.03;
+    mesh.rotation.z += 0.03;
 
     // loop over all trinagle faces of the mesh
     int num_faces = array_length(mesh.faces);
@@ -191,8 +200,6 @@ void update(void){
         face_vertices[0] = mesh.vertices[mesh_face.a - 1]; // index starts with 1. Has to be minus 1.
         face_vertices[1] = mesh.vertices[mesh_face.b - 1];
         face_vertices[2] = mesh.vertices[mesh_face.c - 1];
-
-        triangle_t projected_triangle;
 
         // Loop all three vertices of this current face and apply transformations
         for (int j = 0; j < 3; j++){
@@ -205,7 +212,7 @@ void update(void){
         }
 
         // Back-face Culling
-        if (is_backface){
+        if (cull_method == CULL_BACKFACE){
             vec3_t vec_AtoB = vec3_sub(face_vertices[1], face_vertices[0]); // B-A
             vec3_normalize(&vec_AtoB);
             vec3_t vec_AtoC = vec3_sub(face_vertices[2], face_vertices[0]); // C-A
@@ -222,15 +229,20 @@ void update(void){
             }
         }
 
+        vec2_t projected_points[3];
+
         // Project the face.
         for (int j = 0; j < 3; j++){
-
             // Project the current vertex
-            vec2_t projected_point = project(face_vertices[j]);
-
-            // Save the projected 2D Vector in the array of projected triangle.
-            projected_triangle.points[j] = projected_point;
+            projected_points[j] = project(face_vertices[j]);
         }
+
+        triangle_t projected_triangle = {
+            .points = {{projected_points[0].x, projected_points[0].y},
+                       {projected_points[1].x, projected_points[1].y},
+                       {projected_points[2].x, projected_points[2].y}},
+            .color = mesh_face.color
+        };
 
         // Save the projected triangle in the array of triangles
         array_push(triangles_to_render, projected_triangle);
@@ -241,7 +253,7 @@ void render(void){
 
     clear_color_buffer(0xFF000000);
 
-    //draw_grid(0xFFAAAAAA);
+    draw_grid(0xFFAAAAAA);
 
     // Loop all projected points and render them
     int num_triangles = array_length(triangles_to_render);
@@ -249,24 +261,23 @@ void render(void){
         // render all vertex points
         triangle_t triangle = triangles_to_render[i];
 
-        if (is_filledtriangle){
-            // Draw filled triangle
+        // draw filled Triangle?
+        if (render_method == RENDER_FILL_TRIANGLE || render_method == RENDER_FILL_TRIANGLE_WIRE){
             draw_filled_triangle(triangle.points[0].x, triangle.points[0].y,
                                  triangle.points[1].x, triangle.points[1].y,
                                  triangle.points[2].x, triangle.points[2].y,
-                                 0xFFAAAAAA);
+                                 triangle.color); // dark gray
         }
 
-        if (is_wireframe) {
-          draw_line(triangle.points[0].x, triangle.points[0].y,
-                    triangle.points[1].x, triangle.points[1].y, 0xFF000000);
-          draw_line(triangle.points[1].x, triangle.points[1].y,
-                    triangle.points[2].x, triangle.points[2].y, 0xFF000000);
-          draw_line(triangle.points[2].x, triangle.points[2].y,
-                    triangle.points[0].x, triangle.points[0].y, 0xFF000000);
+        // draw wireframe?
+        if (render_method == RENDER_WIRE || render_method == RENDER_WIRE_VERTEX || render_method == RENDER_FILL_TRIANGLE_WIRE) {
+            draw_triangle(triangle.points[0].x, triangle.points[0].y,
+                          triangle.points[1].x, triangle.points[1].y,
+                          triangle.points[2].x, triangle.points[2].y, 0xFFFFFFFF);
         }
 
-        if (is_redvertex){
+        // draw vertex in red?
+        if (render_method == RENDER_WIRE_VERTEX){
             draw_rectangle(triangle.points[0].x, triangle.points[0].y, 3, 3, 0xFFFF0000);
             draw_rectangle(triangle.points[1].x, triangle.points[1].y, 3, 3, 0xFFFF0000);
             draw_rectangle(triangle.points[2].x, triangle.points[2].y, 3, 3, 0xFFFF0000);
@@ -282,7 +293,7 @@ void render(void){
         color_buffer_texture,
         NULL,
         color_buffer,
-        (int)(window_width*sizeof(uint32_t))
+        (int)(window_width*sizeof(color_t))
     );
 
     // TODO: let it export in GIF.

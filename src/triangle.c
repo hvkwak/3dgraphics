@@ -8,7 +8,7 @@
  * @param
  * @return
  */
-void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
+void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color) {
 
     // dots
     draw_rectangle(x0, y0, 3, 3, color);
@@ -47,7 +47,7 @@ void int_swap(int* a, int* b){
  *                /      \
  *    (x1, y1) P1 -------- (x2, y2)
  */
-void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color){
+void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color){
     // find two slopes: two triangle legs.
     // Note that we find slop with respect to delta y.
     float inv_slope1 = (float)(x1-x0)/(y1-y0);
@@ -86,7 +86,7 @@ void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, u
  *
  *
  */
-void fill_flat_top_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color){
+void fill_flat_top_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color){
     // Draw flat-top triangle
     // Note that we find slop with respect to delta y.
     float inv_slope1 = (float)(x2-x0)/(y2-y0); // left leg
@@ -125,7 +125,7 @@ void fill_flat_top_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint
  *        color: to fille
  * @return
  */
-void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color){
+void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color){
 
     // Sort the verticies by y coordinates ascending.
     // Sort the projected points
