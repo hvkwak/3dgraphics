@@ -6,6 +6,7 @@
 #include "mesh.h"
 #include "array.h"
 #include "save.h"
+#include <stdlib.h>
 
 // Array of triangles that should be rendered frame by frame
 triangle_t* triangles_to_render = NULL;
@@ -211,6 +212,9 @@ void update(void){
             face_vertices[j].z = face_vertices[j].z + 5;
         }
 
+        // Calculate the average depth for each face based on the vertices after transformation.
+        float avg_depth = (face_vertices[0].z + face_vertices[1].z + face_vertices[2].z) / 3.0;
+
         // Back-face Culling
         if (cull_method == CULL_BACKFACE){
             vec3_t vec_AtoB = vec3_sub(face_vertices[1], face_vertices[0]); // B-A
@@ -241,19 +245,35 @@ void update(void){
             .points = {{projected_points[0].x, projected_points[0].y},
                        {projected_points[1].x, projected_points[1].y},
                        {projected_points[2].x, projected_points[2].y}},
-            .color = mesh_face.color
+            .color = mesh_face.color,
+            .avg_depth = avg_depth
         };
 
         // Save the projected triangle in the array of triangles
         array_push(triangles_to_render, projected_triangle);
     }
+
+    // Sort the triangles to render by their avg_depth
+    qsort(triangles_to_render, array_length(triangles_to_render), sizeof(triangle_t), compare_triangle);
+
+    // BubbleSort
+    /* int num_triangles = array_length(triangles_to_render); */
+    /* for (int i = 0; i < num_triangles - 1; i++){ */
+    /*     bool swapped = false; */
+    /*     for (int j = 0; j < num_triangles -1-i; j++){ */
+    /*         swapped = swap_triangle(&triangles_to_render[j], &triangles_to_render[j+1]); */
+    /*         if (!swapped){ */
+    /*             break; */
+    /*         } */
+    /*     } */
+    /* } */
 }
 
 void render(void){
 
     clear_color_buffer(0xFF000000);
 
-    draw_grid(0xFFAAAAAA);
+    // draw_grid(0xFFAAAAAA);
 
     // Loop all projected points and render them
     int num_triangles = array_length(triangles_to_render);
@@ -296,7 +316,9 @@ void render(void){
         (int)(window_width*sizeof(color_t))
     );
 
-    // TODO: let it export in GIF.
+    // TODO: let it export in GIF
+    // let it export when it's not debug mode.
+#ifndef DEBUG
     if (!is_outcome && SDL_GetTicks() > 2500){
 
         // Render full-res texture into small_rt at half size
@@ -339,6 +361,7 @@ void render(void){
         // Restore render target back to window
         SDL_SetRenderTarget(renderer, NULL);
     }
+#endif
     // color buffer texture -> display texture
     SDL_RenderCopy(renderer, color_buffer_texture, NULL, NULL);
     SDL_RenderPresent(renderer); // Displays the result on the window.

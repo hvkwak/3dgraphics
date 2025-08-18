@@ -1,6 +1,34 @@
 #include "triangle.h"
 #include "display.h"
 
+/**
+ * @brief swaps the two triangles
+ *
+ * @param pointer to triangle a and b
+ * @return
+ */
+bool swap_triangle(triangle_t* pa, triangle_t* pb){
+    if (compare_triangle(pa, pb)){
+        triangle_t tmp = *pa;
+        *pa = *pb;
+        *pb = tmp;
+        return true;
+    }else{
+        return false;
+    }
+}
+
+/**
+ * @brief compare triangle
+ *
+ * @param two pointers to triangles a and b
+ * @return true, if a.avg_depth > b.avg_depth
+ */
+int compare_triangle(const void * a, const void * b){
+    const triangle_t* A = (const triangle_t*)a;
+    const triangle_t* B = (const triangle_t*)b;
+    return -(A->avg_depth > B->avg_depth) + (A->avg_depth < B->avg_depth);
+}
 
 /**
  * @brief renders "triangles_to_render"
