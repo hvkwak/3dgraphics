@@ -7,6 +7,7 @@
 #include "array.h"
 #include "save.h"
 #include <stdlib.h>
+#include "matrix.h"
 
 // Array of triangles that should be rendered frame by frame
 triangle_t* triangles_to_render = NULL;
@@ -192,43 +193,63 @@ void update(void){
     mesh.rotation.y += 0.03;
     mesh.rotation.z += 0.03;
 
+    mesh.scale.x += 0.002;
+
+    // Create a scale mamtrix that will be used to multiply the mesh vertices
+    // mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, mesh.scale.y, mesh.scale.z);
+
     // loop over all trinagle faces of the mesh
     int num_faces = array_length(mesh.faces);
     for (int i = 0; i < num_faces; i++){
-
         face_t mesh_face = mesh.faces[i];
+
         vec3_t face_vertices[3];
         face_vertices[0] = mesh.vertices[mesh_face.a - 1]; // index starts with 1. Has to be minus 1.
         face_vertices[1] = mesh.vertices[mesh_face.b - 1];
         face_vertices[2] = mesh.vertices[mesh_face.c - 1];
 
+        vec4_t transformed_vertices[3];
+
         // Loop all three vertices of this current face and apply transformations
         for (int j = 0; j < 3; j++){
-            face_vertices[j] = vec3_rotate_y(face_vertices[j], mesh.rotation.y);
-            face_vertices[j] = vec3_rotate_x(face_vertices[j], mesh.rotation.x);
-            face_vertices[j] = vec3_rotate_z(face_vertices[j], mesh.rotation.z);
+
+            vec4_t transformed_vertex = vec4_from_vec3(face_vertices[j]);
+
+            // Use a matrix to scale the original vertex
+            // TODO: multiply the scale_matrix by the vertex
+            // transformed_vertex = mat4_mul_vec(scale_matrix, transformed_vertex);
+
+            /* transformed_vertex = vec3_rotate_y(transformed_vertex, mesh.rotation.y); */
+            /* transformed_vertex = vec3_rotate_x(transformed_vertex, mesh.rotation.x); */
+            /* transformed_vertex = vec3_rotate_z(transformed_vertex, mesh.rotation.z); */
 
             // Translate the vertex away from the camera(0, 0, 0)
-            face_vertices[j].z = face_vertices[j].z + 5;
-        }
+            transformed_vertex.z += 5;
 
-        // Calculate the average depth for each face based on the vertices after transformation.
-        float avg_depth = (face_vertices[0].z + face_vertices[1].z + face_vertices[2].z) / 3.0;
+            // Save transformed vertex in the array of transformed vertices
+            transformed_vertices[j] = transformed_vertex;
+        }
 
         // Back-face Culling
         if (cull_method == CULL_BACKFACE){
-            vec3_t vec_AtoB = vec3_sub(face_vertices[1], face_vertices[0]); // B-A
+            vec3_t vectorA = vec3_from_vec4(transformed_vertices[0]);
+            vec3_t vectorB = vec3_from_vec4(transformed_vertices[1]);
+            vec3_t vectorC = vec3_from_vec4(transformed_vertices[2]);
+
+
+            vec3_t vec_AtoB = vec3_sub(vectorB, vectorA); // B-A
+            vec3_t vec_AtoC = vec3_sub(vectorC, vectorA); // C-A
             vec3_normalize(&vec_AtoB);
-            vec3_t vec_AtoC = vec3_sub(face_vertices[2], face_vertices[0]); // C-A
             vec3_normalize(&vec_AtoC);
+
             vec3_t vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
             vec3_normalize(&vec_normal);
-            vec3_t vec_camera = vec3_sub(camera_position, face_vertices[0]); // from A to camera position
+
+            vec3_t vec_camera = vec3_sub(camera_position, vectorA); // from A to camera position
             vec3_normalize(&vec_camera);
 
             float angle = vec3_dot(vec_normal, vec_camera);
-            bool isVisible = angle > 0.0 ? true : false;
-            if (!isVisible) {
+            if (angle < 0) { // invisible
               continue;
             }
         }
@@ -238,8 +259,11 @@ void update(void){
         // Project the face.
         for (int j = 0; j < 3; j++){
             // Project the current vertex
-            projected_points[j] = project(face_vertices[j]);
+             projected_points[j] = project(vec3_from_vec4(transformed_vertices[j]));
         }
+
+        // Calculate the average depth for each face based on the vertices after transformation.
+        float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;
 
         triangle_t projected_triangle = {
             .points = {{projected_points[0].x, projected_points[0].y},
@@ -254,19 +278,19 @@ void update(void){
     }
 
     // Sort the triangles to render by their avg_depth
-    qsort(triangles_to_render, array_length(triangles_to_render), sizeof(triangle_t), compare_triangle);
+    // qsort(triangles_to_render, array_length(triangles_to_render), sizeof(triangle_t), compare_triangle);
 
     // BubbleSort
-    /* int num_triangles = array_length(triangles_to_render); */
-    /* for (int i = 0; i < num_triangles - 1; i++){ */
-    /*     bool swapped = false; */
-    /*     for (int j = 0; j < num_triangles -1-i; j++){ */
-    /*         swapped = swap_triangle(&triangles_to_render[j], &triangles_to_render[j+1]); */
-    /*         if (!swapped){ */
-    /*             break; */
-    /*         } */
-    /*     } */
-    /* } */
+    int num_triangles = array_length(triangles_to_render);
+    for (int i = 0; i < num_triangles - 1; i++){
+        bool swapped = false;
+        for (int j = 0; j < num_triangles -1-i; j++){
+            swapped = swap_triangle(&triangles_to_render[j], &triangles_to_render[j+1]);
+            if (!swapped){
+                break;
+            }
+        }
+    }
 }
 
 void render(void){
