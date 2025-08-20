@@ -10,6 +10,7 @@ make run
 
 ## Features (latest-first)
 **Based on the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com))**
+* 3D Matrix Transformations
 * Sorting Faces by Depth and Painter's Algorithm
 * Triangle Rasterization: Flat-Top, Flat-Bottom Algorithm
 * Vector Operations Recap
