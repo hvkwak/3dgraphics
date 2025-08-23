@@ -270,9 +270,9 @@ void update(void){
             // Project the current vertex
             projected_points[j] = mat4_mul_vec4_project(proj_mat, transformed_vertices[j]);
 
-            // Scale into the view
+            // Scale
             projected_points[j].x *= (float)window_width / 2.0;
-            projected_points[j].y *= (float)window_height / 2.0;
+            projected_points[j].y *= -(float)window_height / 2.0;
 
             // Translate the projected points to the middle of the screen
             projected_points[j].x += (float)window_width / 2.0;

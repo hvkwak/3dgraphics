@@ -1,6 +1,14 @@
 # 3dgraphics
 This repository contains my programming exercises and project code related to 3D computer graphics.
 
+## Install
+Install dependencies to compile and run the program
+
+```
+sudo apt install build-essential
+sudo apt install libsdl2-dev # 3D Computer Graphics from Scratch
+```
+
 ## How to Run
 To compile and run the main program (e.g., `src/main.c`), use the following command:
 ```
