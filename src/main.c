@@ -30,8 +30,7 @@ vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
 int previous_frame_time = 0;
 bool is_running = false;
 bool is_outcome = false;
-
-float fov_factor = 640.0;
+mat4_t proj_mat;
 
 /**
  * @brief setup the color buffer and color buffer texture
@@ -80,6 +79,15 @@ bool setup(void){
         window_width,
         window_height
     );
+
+    // initialize the perspective projection matrix
+    float fov = 1.04716666667; // PI/3 = 60 degrees
+    float aspect = (float)window_height / (float)window_width;
+    float znear = 1.0; // not too small, due to properties of NDC coordinates!
+    float zfar = 100.0;
+    proj_mat = mat4_make_perspective(fov, aspect, znear, zfar);
+
+
     if (color_buffer_texture == NULL){
         return false;
     }
@@ -153,20 +161,7 @@ void process_input(void){
 ////////////////////////////////////////////////////////////////////////////////
 // Function that receives a 3D vector and returns a projected 2D point        //
 ////////////////////////////////////////////////////////////////////////////////
-vec2_t project(vec3_t point){
 
-    // perspective projection
-    vec2_t projected_point = {
-        .x = (fov_factor * point.x) / point.z,
-        .y = -(fov_factor * point.y) / point.z,
-    };
-
-    // Scale and translate the projected points to the middle of the screen
-    projected_point.x = projected_point.x + (window_width / 2.0);
-    projected_point.y = -projected_point.y + (window_height / 2.0);
-
-    return projected_point;
-}
 
 /**
  * @brief updates the next frame
@@ -231,7 +226,7 @@ void update(void){
             world_matrix = mat4_mul_mat4(translation_matrix, world_matrix);
 
             // multiply the world matrix by the original vector
-            transformed_vertex = mat4_mul_vec(world_matrix, transformed_vertex);
+            transformed_vertex = mat4_mul_vec4(world_matrix, transformed_vertex);
 
             /* transformed_vertex = mat4_mul_vec(scale_matrix, transformed_vertex); */
             /* transformed_vertex = mat4_mul_vec(rotation_matrix_x, transformed_vertex); */
@@ -267,12 +262,21 @@ void update(void){
             }
         }
 
-        vec2_t projected_points[3];
+        vec4_t projected_points[3];
 
         // Project the face.
         for (int j = 0; j < 3; j++){
+
             // Project the current vertex
-             projected_points[j] = project(vec3_from_vec4(transformed_vertices[j]));
+            projected_points[j] = mat4_mul_vec4_project(proj_mat, transformed_vertices[j]);
+
+            // Scale into the view
+            projected_points[j].x *= (float)window_width / 2.0;
+            projected_points[j].y *= (float)window_height / 2.0;
+
+            // Translate the projected points to the middle of the screen
+            projected_points[j].x += (float)window_width / 2.0;
+            projected_points[j].y += (float)window_height / 2.0;
         }
 
         // Calculate the average depth for each face based on the vertices after transformation.

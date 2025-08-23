@@ -36,7 +36,7 @@ mat4_t mat4_make_scale(float sx, float sy, float sz){
  * @param a 4x4 matrix and 4D vector
  * @return a 4D vector
  */
-vec4_t mat4_mul_vec(mat4_t m, vec4_t v){
+vec4_t mat4_mul_vec4(mat4_t m, vec4_t v){
     vec4_t result;
     result.x = m.m[0][0] * v.x + m.m[0][1]*v.y + m.m[0][2]*v.z + m.m[0][3]* v.w;
     result.y = m.m[1][0] * v.x + m.m[1][1]*v.y + m.m[1][2]*v.z + m.m[1][3]* v.w;
@@ -112,4 +112,50 @@ mat4_t mat4_mul_mat4(mat4_t a, mat4_t b){
         }
     }
     return m;
+}
+
+/**
+ * @brief returns perspective projection matrix
+ *
+ * @param
+ *      fov : field of view
+ *      aspect: aspect ratio, h/w
+ *      znear: near z
+ *      zfar : far z
+ * @return a 4x4 perspective projection matrix
+ */
+mat4_t mat4_make_perspective(float fov, float aspect, float znear, float zfar){
+    // | (h/w)*1/tan(fov/2)             0              0                 0 |
+    // |                  0  1/tan(fov/2)              0                 0 |
+    // |                  0             0     zf/(zf-zn)  (-zf*zn)/(zf-zn) |
+    // |                  0             0              1                 0 |
+    mat4_t m = {{{ 0 }}}; // starts with zeros.
+    m.m[0][0] = aspect * (1 / tan(fov / 2));
+    m.m[1][1] = 1 / tan(fov / 2);
+    m.m[2][2] = zfar / (zfar - znear);
+    m.m[2][3] = (-zfar * znear) / (zfar - znear);
+    m.m[3][2] = 1.0;
+    return m;
+}
+
+/**
+ * @brief multiplies the projection matrix by our original vector
+ *
+ * @param
+ *      mat_proj : 4x4 projection matrix
+ *      v :         4D vector for projection
+ * @return  projected vector
+ */
+vec4_t mat4_mul_vec4_project(mat4_t mat_proj, vec4_t v) {
+    vec4_t result = mat4_mul_vec4(mat_proj, v);
+
+    // perform perspective divide with original z-value that is now stored in w
+    // (w != 0.0) changed due to floating-point precision issues.
+    if (fabs(result.w) > 1e-6) {
+        result.x /= result.w;
+        result.y /= result.w;
+        result.z /= result.w;
+    }
+
+    return result;
 }

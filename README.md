@@ -10,18 +10,19 @@ make run
 
 ## Features (latest-first)
 **Based on the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com))**
+* Projection Matrix, NDC Coordinates, and their Properties
 * 3D Matrix Transformations
 * Sorting Faces by Depth and Painter's Algorithm
 * Triangle Rasterization: Flat-Top, Flat-Bottom Algorithm
 * Vector Operations Recap
-* Backface Culling: Keep "back" faces invisible
-* Dynamic Arrays and Reading OBJ File Content
+* Backface Culling: Keep "Back" Faces Invisible
+* Dynamic Arrays and Reading .obj File Content
 * DDA Line Drawing Algorithm
 * Triangles and Vertices Recap
 * Fixed Time Step with Delay Function
 * Linear Transformations
 * Projection of Points Recap: Orthographic, Isometric, and Perspective
 * Vectors and Points using C Structs
-* Modular structure with multiple header files
-* Color buffer implementation for pixel-level drawing
-* SDL setup for window creation and rendering
+* Modular Structure with Multiple Header Files
+* Color Buffer Implementation for Pixel-level Drawing
+* SDL Setup for Window Creation and Rendering
