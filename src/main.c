@@ -8,6 +8,7 @@
 #include "save.h"
 #include <stdlib.h>
 #include "matrix.h"
+#include "light.h"
 
 // Array of triangles that should be rendered frame by frame
 triangle_t* triangles_to_render = NULL;
@@ -238,6 +239,9 @@ void update(void){
             transformed_vertices[j] = transformed_vertex;
         }
 
+        // normal vector for lighting
+        vec3_t vec_normal;
+
         // Back-face Culling
         if (cull_method == CULL_BACKFACE){
             vec3_t vectorA = vec3_from_vec4(transformed_vertices[0]);
@@ -250,17 +254,31 @@ void update(void){
             vec3_normalize(&vec_AtoB);
             vec3_normalize(&vec_AtoC);
 
-            vec3_t vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
+            vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
             vec3_normalize(&vec_normal);
 
             vec3_t vec_camera = vec3_sub(camera_position, vectorA); // from A to camera position
             vec3_normalize(&vec_camera);
 
-            float angle = vec3_dot(vec_normal, vec_camera);
-            if (angle < 0) { // invisible
+            float cos_angle_normal_camera = vec3_dot(vec_normal, vec_camera);
+            if (cos_angle_normal_camera < 0) { // invisible: beyond 90°
               continue;
             }
+        } else {
+            vec3_normalize(&vec_normal);
         }
+
+        // get the angle between light and normal.
+        // increases when angle 90 -> 180.
+        float cos_angle_normal_light = vec3_dot(vec_normal, light.direction);
+        float percentage_factor = 1.0;
+        if (-1.0 < cos_angle_normal_light && cos_angle_normal_light < 0.0){
+            percentage_factor *= (-1.0)*cos_angle_normal_light;
+        }else {
+            percentage_factor *= 0.0;
+        }
+        color_t new_color = (color_t)light_apply_intensity(mesh_face.color, percentage_factor);
+
 
         vec4_t projected_points[3];
 
@@ -286,7 +304,7 @@ void update(void){
             .points = {{projected_points[0].x, projected_points[0].y},
                        {projected_points[1].x, projected_points[1].y},
                        {projected_points[2].x, projected_points[2].y}},
-            .color = mesh_face.color,
+            .color = new_color,
             .avg_depth = avg_depth
         };
 

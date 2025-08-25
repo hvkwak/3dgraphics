@@ -18,6 +18,7 @@ make run
 
 ## Features (latest-first)
 **Based on the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com))**
+* Light and Shading
 * Projection Matrix, NDC Coordinates, and their Properties
 * 3D Matrix Transformations
 * Sorting Faces by Depth and Painter's Algorithm
