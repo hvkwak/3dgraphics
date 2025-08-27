@@ -8,6 +8,8 @@ light_t light = {
 // Change color based on a percentage factor to represent light intensity
 ///////////////////////////////////////////////////////////////////////////////
 uint32_t light_apply_intensity(uint32_t original_color, float percentage_factor) {
+
+    // clamp percentage factor.
     if (percentage_factor < 0) percentage_factor = 0;
     if (percentage_factor > 1) percentage_factor = 1;
 

@@ -9,11 +9,10 @@
 #include <stdlib.h>
 #include "matrix.h"
 #include "light.h"
+#include "texture.h"
+#include "triangle.h"
 
-// Array of triangles that should be rendered frame by frame
-triangle_t* triangles_to_render = NULL;
-
-// render/cull mode enums
+// render/cull mode enums: DO NOT move to other files, otherwise "multiple" definition error.
 enum cull_method {
     CULL_NONE,
     CULL_BACKFACE
@@ -23,8 +22,13 @@ enum render_method {
     RENDER_WIRE,
     RENDER_WIRE_VERTEX,
     RENDER_FILL_TRIANGLE,
-    RENDER_FILL_TRIANGLE_WIRE
+    RENDER_FILL_TRIANGLE_WIRE,
+    RENDER_TEXTURED,
+    RENDER_TEXTURED_WIRE
 } render_method;
+
+// Array of triangles that should be rendered frame by frame
+triangle_t* triangles_to_render = NULL;
 
 // other global variables
 vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
@@ -89,6 +93,11 @@ bool setup(void){
     proj_mat = mat4_make_perspective(fov, aspect, znear, zfar);
 
 
+    // Manually load the hardcoded texture data from the static array
+    mesh_texture = (uint32_t*)REDBRICK_TEXTURE;
+    texture_width = 64;
+    texture_width = 64;
+
     if (color_buffer_texture == NULL){
         return false;
     }
@@ -103,7 +112,7 @@ bool setup(void){
 /*         return false; */
 /*     } */
 /* #else */
-/*     if (!load_obj_file_data("./assets/cube.obj")){ */
+/*     if (!load_obj_file_data("./assets/f22.obj")){ */
 /*         return false; */
 /*     } */
 /* #endif */
@@ -131,21 +140,29 @@ void process_input(void){
                 is_running = false;
                 break;
             }
-            else if (event.key.keysym.sym == SDLK_1 || event.key.keysym.sym == SDLK_KP_1){
+            else if (event.key.keysym.sym == SDLK_1){
                 // 1 Displays the wireframe and a small red dot for each triangle vertex
                 render_method = RENDER_WIRE_VERTEX;
                 break;
-            }else if (event.key.keysym.sym == SDLK_2 || event.key.keysym.sym == SDLK_KP_2){
+            }else if (event.key.keysym.sym == SDLK_2){
                 // 2 Displays only the wireframe lines
                 render_method = RENDER_WIRE;
                 break;
-            }else if (event.key.keysym.sym == SDLK_3 || event.key.keysym.sym == SDLK_KP_3){
+            }else if (event.key.keysym.sym == SDLK_3){
                 // 3 Displays filled triangles with a solid color
                 render_method = RENDER_FILL_TRIANGLE;
                 break;
-            }else if (event.key.keysym.sym == SDLK_4 || event.key.keysym.sym == SDLK_KP_4){
+            }else if (event.key.keysym.sym == SDLK_4){
                 // 4 Displays both filled triangles and wireframe lines
                 render_method = RENDER_FILL_TRIANGLE_WIRE;
+                break;
+            }else if (event.key.keysym.sym == SDLK_5){
+                // 4 Displays textured face
+                render_method = RENDER_TEXTURED;
+                break;
+            }else if (event.key.keysym.sym == SDLK_6){
+                // 4 Displays textured face and wire
+                render_method = RENDER_TEXTURED_WIRE;
                 break;
             }else if (event.key.keysym.sym == SDLK_c){
                 // C Enables back-face culling c
@@ -186,8 +203,8 @@ void update(void){
     triangles_to_render = NULL;
 
     mesh.rotation.x += 0.01;
-    /* mesh.rotation.y += 0.01; */
-    /* mesh.rotation.z += 0.01; */
+    mesh.rotation.y += 0.01;
+    mesh.rotation.z += 0.01;
     /* mesh.scale.x += 0.002; */
     /* mesh.scale.y += 0.001; */
     /* mesh.translation.x += 0.01; */
@@ -229,53 +246,41 @@ void update(void){
             // multiply the world matrix by the original vector
             transformed_vertex = mat4_mul_vec4(world_matrix, transformed_vertex);
 
-            /* transformed_vertex = mat4_mul_vec(scale_matrix, transformed_vertex); */
-            /* transformed_vertex = mat4_mul_vec(rotation_matrix_x, transformed_vertex); */
-            /* transformed_vertex = mat4_mul_vec(rotation_matrix_y, transformed_vertex); */
-            /* transformed_vertex = mat4_mul_vec(rotation_matrix_z, transformed_vertex); */
-            /* transformed_vertex = mat4_mul_vec(translation_matrix, transformed_vertex); */
-
             // Save transformed vertex in the array of transformed vertices
             transformed_vertices[j] = transformed_vertex;
         }
 
         // normal vector for lighting
         vec3_t vec_normal;
+        vec3_t vectorA = vec3_from_vec4(transformed_vertices[0]);
+        vec3_t vectorB = vec3_from_vec4(transformed_vertices[1]);
+        vec3_t vectorC = vec3_from_vec4(transformed_vertices[2]);
+
+        vec3_t vec_AtoB = vec3_sub(vectorB, vectorA); // B-A
+        vec3_t vec_AtoC = vec3_sub(vectorC, vectorA); // C-A
+        vec3_normalize(&vec_AtoB);
+        vec3_normalize(&vec_AtoC);
+
+        vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
+        vec3_normalize(&vec_normal);
+
+        vec3_t vec_camera = vec3_sub(camera_position, vectorA); // from A to camera position
+        vec3_normalize(&vec_camera);
+
+        float cos_angle_normal_camera = vec3_dot(vec_normal, vec_camera);
 
         // Back-face Culling
         if (cull_method == CULL_BACKFACE){
-            vec3_t vectorA = vec3_from_vec4(transformed_vertices[0]);
-            vec3_t vectorB = vec3_from_vec4(transformed_vertices[1]);
-            vec3_t vectorC = vec3_from_vec4(transformed_vertices[2]);
-
-
-            vec3_t vec_AtoB = vec3_sub(vectorB, vectorA); // B-A
-            vec3_t vec_AtoC = vec3_sub(vectorC, vectorA); // C-A
-            vec3_normalize(&vec_AtoB);
-            vec3_normalize(&vec_AtoC);
-
-            vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
-            vec3_normalize(&vec_normal);
-
-            vec3_t vec_camera = vec3_sub(camera_position, vectorA); // from A to camera position
-            vec3_normalize(&vec_camera);
-
-            float cos_angle_normal_camera = vec3_dot(vec_normal, vec_camera);
             if (cos_angle_normal_camera < 0) { // invisible: beyond 90°
               continue;
             }
-        } else {
-            vec3_normalize(&vec_normal);
         }
 
-        // get the angle between light and normal.
-        // increases when angle 90 -> 180.
-        float cos_angle_normal_light = vec3_dot(vec_normal, light.direction);
-        float percentage_factor = 1.0;
-        if (-1.0 < cos_angle_normal_light && cos_angle_normal_light < 0.0){
-            percentage_factor *= (-1.0)*cos_angle_normal_light;
-        }else {
-            percentage_factor *= 0.0;
+        // get the angle between light and normal -> color change due to light
+        float cos_angle_normal_light = -vec3_dot(vec_normal, light.direction); // inverse
+        float percentage_factor = 0.0;
+        if (cos_angle_normal_light > 0.0){
+            percentage_factor = cos_angle_normal_light;
         }
         color_t new_color = (color_t)light_apply_intensity(mesh_face.color, percentage_factor);
 
@@ -288,9 +293,12 @@ void update(void){
             // Project the current vertex
             projected_points[j] = mat4_mul_vec4_project(proj_mat, transformed_vertices[j]);
 
+            // Invert y values
+            projected_points[j].y *= (-1.0);
+
             // Scale
             projected_points[j].x *= (float)window_width / 2.0;
-            projected_points[j].y *= -(float)window_height / 2.0;
+            projected_points[j].y *= (float)window_height / 2.0;
 
             // Translate the projected points to the middle of the screen
             projected_points[j].x += (float)window_width / 2.0;
@@ -301,11 +309,16 @@ void update(void){
         float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;
 
         triangle_t projected_triangle = {
-            .points = {{projected_points[0].x, projected_points[0].y},
-                       {projected_points[1].x, projected_points[1].y},
-                       {projected_points[2].x, projected_points[2].y}},
+            .points = {{projected_points[0].x, projected_points[0].y, projected_points[0].z, projected_points[0].w},
+                       {projected_points[1].x, projected_points[1].y, projected_points[1].z, projected_points[1].w},
+                       {projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w}},
             .color = new_color,
-            .avg_depth = avg_depth
+            .avg_depth = avg_depth,
+            .textcoords = {
+                {mesh_face.a_uv.u, mesh_face.a_uv.v},
+                {mesh_face.b_uv.u, mesh_face.b_uv.v},
+                {mesh_face.c_uv.u, mesh_face.c_uv.v}
+            }
         };
 
         // Save the projected triangle in the array of triangles
@@ -340,7 +353,7 @@ void render(void){
         // render all vertex points
         triangle_t triangle = triangles_to_render[i];
 
-        // draw filled Triangle?
+        // draw filled Triangle
         if (render_method == RENDER_FILL_TRIANGLE || render_method == RENDER_FILL_TRIANGLE_WIRE){
             draw_filled_triangle(triangle.points[0].x, triangle.points[0].y,
                                  triangle.points[1].x, triangle.points[1].y,
@@ -348,14 +361,23 @@ void render(void){
                                  triangle.color); // dark gray
         }
 
-        // draw wireframe?
-        if (render_method == RENDER_WIRE || render_method == RENDER_WIRE_VERTEX || render_method == RENDER_FILL_TRIANGLE_WIRE) {
+        // draw textured triangle
+        if (render_method == RENDER_TEXTURED || render_method == RENDER_TEXTURED_WIRE){
+            draw_textured_triangle(
+                triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.textcoords[0],
+                triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w, triangle.textcoords[1],
+                triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w, triangle.textcoords[2],
+                mesh_texture);
+        }
+
+        // draw wireframe
+        if (render_method == RENDER_WIRE || render_method == RENDER_WIRE_VERTEX || render_method == RENDER_FILL_TRIANGLE_WIRE || render_method == RENDER_TEXTURED_WIRE) {
             draw_triangle(triangle.points[0].x, triangle.points[0].y,
                           triangle.points[1].x, triangle.points[1].y,
                           triangle.points[2].x, triangle.points[2].y, 0xFFFFFFFF);
         }
 
-        // draw vertex in red?
+        // draw vertex in red
         if (render_method == RENDER_WIRE_VERTEX){
             draw_rectangle(triangle.points[0].x, triangle.points[0].y, 3, 3, 0xFFFF0000);
             draw_rectangle(triangle.points[1].x, triangle.points[1].y, 3, 3, 0xFFFF0000);

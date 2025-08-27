@@ -11,7 +11,6 @@
 // Declare a new type of definition to hold 32-bit colors value
 typedef uint32_t color_t;
 
-
 // declared here, but defined in .c -> extern
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
