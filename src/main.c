@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include "display.h"
 #include "vector.h"
 #include "mesh.h"
@@ -33,8 +34,9 @@ triangle_t* triangles_to_render = NULL;
 // other global variables
 vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
 int previous_frame_time = 0;
+int capture_idx = 0;
+int capture_max = 90;
 bool is_running = false;
-bool is_outcome = false;
 mat4_t proj_mat;
 
 /**
@@ -59,11 +61,15 @@ bool setup(void){
     save_width  = window_width/2;
     save_height = window_height/2;
     save_pitch  = save_width * 4;  // ARGB8888 => 4 bytes per pixel
-    save_pixels = (Uint8*)malloc(save_pitch * save_height);
+
+    // allocate save pixels
+    save_pixels = (Uint8 *)malloc(save_pitch * save_height);
     if (!save_pixels) {
-        fprintf(stderr, "Memory allocation failed\n");
-        return false;
+      fprintf(stderr, "Memory allocation failed\n");
+      return false;
     }
+
+
     // Better downscale quality
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2"); // "1" linear, "2" best available
 
@@ -95,8 +101,6 @@ bool setup(void){
 
     // Manually load the hardcoded texture data from the static array
     mesh_texture = (uint32_t*)REDBRICK_TEXTURE;
-    texture_width = 64;
-    texture_width = 64;
 
     if (color_buffer_texture == NULL){
         return false;
@@ -284,7 +288,6 @@ void update(void){
         }
         color_t new_color = (color_t)light_apply_intensity(mesh_face.color, percentage_factor);
 
-
         vec4_t projected_points[3];
 
         // Project the face.
@@ -397,10 +400,9 @@ void render(void){
         (int)(window_width*sizeof(color_t))
     );
 
-    // TODO: let it export in GIF
-    // let it export when it's not debug mode.
-#ifndef DEBUG
-    if (!is_outcome && SDL_GetTicks() > 2500){
+    // TODO: check if there's memory leak
+    // Export in PNG
+    if (SDL_GetTicks() > 3000 && capture_idx < capture_max){
 
         // Render full-res texture into small_rt at half size
         SDL_SetRenderTarget(renderer, save_texture);
@@ -432,17 +434,22 @@ void render(void){
             return;
         }
 
-        // Save to BMP
-        if (SDL_SaveBMP(save_surface, "outcome.bmp") == 0) {
-            printf("Screenshot saved as outcome.bmp\n");
-            is_outcome = true;
-        } else {
-            fprintf(stderr, "SDL_SaveBMP failed: %s\n", SDL_GetError());
+        // Save to PNG
+        char path[256];
+#ifdef DEBUG
+        snprintf(path, sizeof(path), "/home/hyobin/Documents/3dgraphics/captures/frame_%04d.png", ++capture_idx);
+#else
+        snprintf(path, sizeof(path), "/home/hyobin/Documents/3dgraphics/captures/frame_%04d.png", ++capture_idx);
+#endif
+        if (IMG_SavePNG(save_surface, path) == 0){
+            printf("[cap] %s\n", path);
+        }else{
+            fprintf(stderr, "IMG_SavePNG failed: %s\n", SDL_GetError());
         }
+
         // Restore render target back to window
         SDL_SetRenderTarget(renderer, NULL);
     }
-#endif
     // color buffer texture -> display texture
     SDL_RenderCopy(renderer, color_buffer_texture, NULL, NULL);
     SDL_RenderPresent(renderer); // Displays the result on the window.

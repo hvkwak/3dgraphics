@@ -1,6 +1,7 @@
 #include "triangle.h"
 #include "display.h"
 #include "swap.h"
+#include "math.h"
 
 /**
  * @brief swaps the two triangles
@@ -59,23 +60,29 @@ void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color
  */
 vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p) {
     // Find the vectors between the vertices ABC and point p
-    vec2_t ac = vec2_sub(c, a);
-    vec2_t ab = vec2_sub(b, a);
-    vec2_t ap = vec2_sub(p, a);
-    vec2_t pc = vec2_sub(c, p);
-    vec2_t pb = vec2_sub(b, p);
+    vec2_t ac = vec2_sub(c, a); // from a to c
+    vec2_t ab = vec2_sub(b, a); // from a to b
+    vec2_t ap = vec2_sub(p, a); // from a to p
+    vec2_t pc = vec2_sub(c, p); // from p to c
+    vec2_t pb = vec2_sub(b, p); // from p to b
 
-    // Compute the area of the full parallegram/triangle ABC using 2D cross product
-    float area_parallelogram_abc = (ac.x * ab.y - ac.y * ab.x); // || AC x AB ||
+    // Compute the area of the full parallelogram of ABC using 2D cross product
+    float area_full = fabsf(ac.x * ab.y - ac.y * ab.x); // AC x AB
 
-    // Alpha is the area of the small parallelogram/triangle PBC divided by the area of the full parallelogram/triangle ABC
-    float alpha = (pc.x * pb.y - pc.y * pb.x) / area_parallelogram_abc;
+    // Alpha is the area of the small parallelogram divided by the area of the full parallelogram
+    float alpha = fabsf(pc.x * pb.y - pc.y * pb.x) / area_full; // ||PC x PB||
+    if (alpha > 1.0){
+        alpha = 0.9999999;
+    }
 
-    // Beta is the area of the small parallelogram/triangle APC divided by the area of the full parallelogram/triangle ABC
-    float beta = (ac.x * ap.y - ac.y * ap.x) / area_parallelogram_abc;
+    // Beta is the area of the small parallelogram APC divided by the area of the full parallelogram/triangle ABC
+    float beta = fabsf(ac.x * ap.y - ac.y * ap.x) / area_full; // ||AC x AP||
+    if (beta > 1.0){
+        beta = 0.9999999;
+    }
 
     // Weight gamma is easily found since barycentric coordinates always add up to 1.0
-    float gamma = 1 - alpha - beta;
+    float gamma = 1.0 - alpha - beta;
 
     vec3_t weights = { alpha, beta, gamma };
     return weights;
@@ -85,7 +92,10 @@ vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p) {
 /**
  * @brief draws texture at the coordinate
  *
- * @param
+ * @param x, y                      - coordinates of point to render
+ *        point_a, point_b, point_c - vertices of the triangle
+ *        uv_a, uv_b, uv_c          - texture coordinates of vertices
+ *        texture                   - pointer to texture
  * @return
  */
 void draw_texel(int x, int y,
@@ -93,8 +103,8 @@ void draw_texel(int x, int y,
                 tex2_t uv_a, tex2_t uv_b, tex2_t uv_c,
                 uint32_t* texture)
 {
-    vec2_t p = {x, y};
-    vec2_t a = vec2_from_vec4(point_a);
+    vec2_t p = {x, y}; // point
+    vec2_t a = vec2_from_vec4(point_a); // take the first two coordinates
     vec2_t b = vec2_from_vec4(point_b);
     vec2_t c = vec2_from_vec4(point_c);
 
@@ -109,14 +119,29 @@ void draw_texel(int x, int y,
     float interpolated_v;
     float interpolated_reciprocal_w;
 
-    // interpolation of all u/w and v/w values using barycentric weights and a factor of 1/w
+    // Note 1: Potential misunderstanding due to wording(?)
+    // Perspective is non-linear transform that involves dividing by w.
+    // -> geometry gets distorted in screen space.
+    // u/w, v/w, and 1/w, however, vary linearly and safe to work with barycentric weights.
+
+    // Note 2: Remember this: x_p = x/w
+    // x_p has a non-linear relationship with w,
+    // x_p has a linear relationship with 1/w.
+
+    // Note3 : interpolation of all u/w and v/w values using barycentric weights and a factor of 1/w
+    // 1. alpha, beta, and gamma are based on the 2D projected points
+    // 2. But texture coordinates u, v belong to the original 3D world/texture space. Not projected yet!
+    // 3. interplation need to be based on u/w and v/w values.
     interpolated_u = (uv_a.u/point_a.w)*alpha + (uv_b.u/point_b.w)*beta + (uv_c.u/point_c.w)*gamma;
     interpolated_v = (uv_a.v/point_a.w)*alpha + (uv_b.v/point_b.w)*beta + (uv_c.v/point_c.w)*gamma;
 
     // Also interpolate the value of 1/w for the current pixel
-    interpolated_reciprocal_w = (1/point_a.w) * alpha + (1/point_b.w) * beta + (1/point_c.w) *gamma;
+    interpolated_reciprocal_w = (1/point_a.w)*alpha + (1/point_b.w)*beta + (1/point_c.w)*gamma;
 
-    // devide back both interpolated values by 1/w
+    // divide back both interpolated values by 1/w
+    // back to normal u, v coordinates to restore the “true” perspective-correct texture coordinates!
+    // Note: Misunderstood? it is recommended then to recall when we draw pixel P(x, y) of the exact vertex
+    //       position, where e.g. alpha = 1.0, beta = 0.0, gamma = 0.0.
     interpolated_u /= interpolated_reciprocal_w;
     interpolated_v /= interpolated_reciprocal_w;
 
@@ -130,8 +155,9 @@ void draw_texel(int x, int y,
         tex_y -= 1;
     }
 
+    // LSP :: Exception has occurred: signal
+    // signal SIGSEGV: address not mapped to object (fault address=0x555556494490)
     draw_pixel(x, y, texture[(texture_width*tex_y) + tex_x]);
-
 }
 
 /**
@@ -177,7 +203,6 @@ void draw_textured_triangle(int x0, int y0, float z0, float w0, tex2_t uv_a,
     vec4_t point_b = {x1, y1, z1, w1};
     vec4_t point_c = {x2, y2, z2, w2};
 
-
     /////////////////////////////////////////////////////////
     // render the upper part of the triangle (flat-bottom) //
     /////////////////////////////////////////////////////////
@@ -189,6 +214,7 @@ void draw_textured_triangle(int x0, int y0, float z0, float w0, tex2_t uv_a,
 
     if (y1 - y0 != 0){
       for (int y = y0; y <= y1; y++) {// starting from top to y1: upper part of the triangle
+
         int x_start = x1 + (y - y1) * inv_slope1;
         int x_end = x0 + (y - y0) * inv_slope2;
 

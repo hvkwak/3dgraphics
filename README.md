@@ -1,15 +1,15 @@
 # 3dgraphics
 This repository contains my programming exercises and project code related to 3D computer graphics.
 
-## Install
+## How to install
 Install dependencies to compile and run the program
 
 ```
 sudo apt install build-essential
-sudo apt install libsdl2-dev # 3D Computer Graphics from Scratch
+sudo apt install libsdl2-dev libsdl2-image-dev # 3D Computer Graphics from Scratch
 ```
 
-## How to Run
+## How to run
 To compile and run the main program (e.g., `src/main.c`), use the following command:
 ```
 make build
@@ -18,6 +18,7 @@ make run
 
 ## Features (latest-first)
 **Based on the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com))**
+![Demo Animation](output.gif)
 * Perspective Correct Textures
 * Texture Mapping
 * Light and Shading, Flat Shading
