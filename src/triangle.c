@@ -72,12 +72,14 @@ vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p) {
     // Alpha is the area of the small parallelogram divided by the area of the full parallelogram
     float alpha = fabsf(pc.x * pb.y - pc.y * pb.x) / area_full; // ||PC x PB||
     if (alpha > 1.0){
+        // truncate.
         alpha = 0.9999999;
     }
 
     // Beta is the area of the small parallelogram APC divided by the area of the full parallelogram/triangle ABC
     float beta = fabsf(ac.x * ap.y - ac.y * ap.x) / area_full; // ||AC x AP||
     if (beta > 1.0){
+        // truncate.
         beta = 0.9999999;
     }
 
@@ -146,8 +148,9 @@ void draw_texel(int x, int y,
     interpolated_v /= interpolated_reciprocal_w;
 
     // map the uv coordinate to the full texture width and height
+    // module due to "truncation error"
     int tex_x = (int)(interpolated_u * texture_width);
-    int tex_y = (int)(interpolated_v * texture_height);// upside down
+    int tex_y = (int)(interpolated_v * texture_height);
     if (texture_width <= tex_x){
         tex_x = texture_width - 1;
     }
@@ -155,8 +158,6 @@ void draw_texel(int x, int y,
         tex_y = texture_height -1;
     }
 
-    // LSP :: Exception has occurred: signal
-    // signal SIGSEGV: address not mapped to object (fault address=0x555556494490)
     draw_pixel(x, y, texture[(texture_width*tex_y) + tex_x]);
 }
 
@@ -198,6 +199,12 @@ void draw_textured_triangle(int x0, int y0, float z0, float w0, tex2_t uv_a,
         float_swap(&uv_a.u, &uv_b.u);
         float_swap(&uv_a.v, &uv_b.v);
     }
+
+    // Flip the V component to account for inverted uv_coordinates
+    // (here we should have v grows downwards, .obj is upward.)
+    uv_a.v = 1.0 - uv_a.v;
+    uv_b.v = 1.0 - uv_b.v;
+    uv_c.v = 1.0 - uv_c.v;
 
     vec4_t point_a = {x0, y0, z0, w0};
     vec4_t point_b = {x1, y1, z1, w1};

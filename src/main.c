@@ -12,6 +12,7 @@
 #include "light.h"
 #include "texture.h"
 #include "triangle.h"
+#include "upng.h"
 
 // render/cull mode enums: DO NOT move to other files, otherwise "multiple" definition error.
 enum cull_method {
@@ -58,6 +59,7 @@ bool setup(void){
         return false;
     }
 
+    // Create an SDL texture that is used to save
     // Allocate downsized pixel buffer (ARGB8888 = 4 bytes per pixel) for BMP export
     save_width  = window_width/2;
     save_height = window_height/2;
@@ -86,11 +88,15 @@ bool setup(void){
     // Create an SDL texture that is used to display the color buffer.
     color_buffer_texture = SDL_CreateTexture(
         renderer,
-        SDL_PIXELFORMAT_ARGB8888,
+        SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_STREAMING,
         window_width,
         window_height
     );
+
+    if (color_buffer_texture == NULL){
+        return false;
+    }
 
     // initialize the perspective projection matrix
     float fov = 1.04716666667; // PI/3 = 60 degrees
@@ -99,29 +105,27 @@ bool setup(void){
     float zfar = 100.0;
     proj_mat = mat4_make_perspective(fov, aspect, znear, zfar);
 
-
     // Manually load the hardcoded texture data from the static array
-    mesh_texture = (uint32_t*)REDBRICK_TEXTURE;
+    /* mesh_texture = (uint32_t*)REDBRICK_TEXTURE; */
 
-    if (color_buffer_texture == NULL){
+    // load the vertex and face values for the mesh data structure
+    // load the texture information from an external PGN file
+    // load_cube_mesh_data();
+
+#ifdef DEBUG
+    // For Debugging in Emacs
+    char* png_filename = "../assets/f22.png";
+    char* obj_filename = "../assets/f22.obj";
+#else
+    char* png_filename = "./assets/f22.png";
+    char* obj_filename = "./assets/f22.obj";
+#endif
+    if (!load_obj_file_data(obj_filename)){
         return false;
     }
-
-    // load mesh
-    load_cube_mesh_data();
-
-    // Load the cube values in the mesh data structure
-/* #ifdef DEBUG */
-/*     // NOTE: For Debugging in Emacs */
-/*     if (!load_obj_file_data("../assets/cube.obj")){ */
-/*         return false; */
-/*     } */
-/* #else */
-/*     if (!load_obj_file_data("./assets/f22.obj")){ */
-/*         return false; */
-/*     } */
-/* #endif */
-
+    if (!load_png_texture_data(png_filename)){
+        return false;
+    }
     return true;
 }
 
@@ -208,8 +212,8 @@ void update(void){
     triangles_to_render = NULL;
 
     mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.01;
-    mesh.rotation.z += 0.01;
+    /* mesh.rotation.y += 0.01; */
+    /* mesh.rotation.z += 0.01; */
     /* mesh.scale.x += 0.002; */
     /* mesh.scale.y += 0.001; */
     /* mesh.translation.x += 0.01; */
@@ -227,9 +231,9 @@ void update(void){
     for (int i = 0; i < num_faces; i++){
         face_t mesh_face = mesh.faces[i];
         vec3_t face_vertices[3];
-        face_vertices[0] = mesh.vertices[mesh_face.a - 1]; // index starts with 1. Has to be minus 1.
-        face_vertices[1] = mesh.vertices[mesh_face.b - 1];
-        face_vertices[2] = mesh.vertices[mesh_face.c - 1];
+        face_vertices[0] = mesh.vertices[mesh_face.a];
+        face_vertices[1] = mesh.vertices[mesh_face.b];
+        face_vertices[2] = mesh.vertices[mesh_face.c];
 
         vec4_t transformed_vertices[3];
         // Loop all three vertices of this current face and apply transformations
@@ -283,11 +287,11 @@ void update(void){
 
         // get the angle between light and normal -> color change due to light
         float cos_angle_normal_light = -vec3_dot(vec_normal, light.direction); // inverse
-        float percentage_factor = 0.0;
-        if (cos_angle_normal_light > 0.0){
-            percentage_factor = cos_angle_normal_light;
-        }
-        color_t new_color = (color_t)light_apply_intensity(mesh_face.color, percentage_factor);
+        /* float percentage_factor = 0.0; */
+        /* if (cos_angle_normal_light > 0.0){ */
+        /*     percentage_factor = cos_angle_normal_light; */
+        /* } */
+        color_t new_color = (color_t)light_apply_intensity(mesh_face.color, cos_angle_normal_light);
 
         vec4_t projected_points[3];
 
@@ -466,6 +470,10 @@ void render(void){
  * @return
  */
 void free_resources(void){
+
+    if (png_texture != NULL){
+        upng_free(png_texture);
+    }
     if (save_pixels != NULL){
         free(save_pixels);
     }

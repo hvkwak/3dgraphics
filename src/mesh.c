@@ -27,23 +27,23 @@ vec3_t cube_vertices[N_CUBE_VERTICES] = {
 face_t cube_faces[N_CUBE_FACES] = {
     // faces have now uv coordinates for texture mapping.
     // front
-    { .a = 1, .b = 2, .c = 3, .a_uv = { 0, 0 }, .b_uv = { 0, 1 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
-    { .a = 1, .b = 3, .c = 4, .a_uv = { 0, 0 }, .b_uv = { 1, 1 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 1, .b = 2, .c = 3, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 1, .b = 3, .c = 4, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
     // right
-    { .a = 4, .b = 3, .c = 5, .a_uv = { 0, 0 }, .b_uv = { 0, 1 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
-    { .a = 4, .b = 5, .c = 6, .a_uv = { 0, 0 }, .b_uv = { 1, 1 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 4, .b = 3, .c = 5, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 4, .b = 5, .c = 6, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
     // back
-    { .a = 6, .b = 5, .c = 7, .a_uv = { 0, 0 }, .b_uv = { 0, 1 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
-    { .a = 6, .b = 7, .c = 8, .a_uv = { 0, 0 }, .b_uv = { 1, 1 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 6, .b = 5, .c = 7, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 6, .b = 7, .c = 8, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
     // left
-    { .a = 8, .b = 7, .c = 2, .a_uv = { 0, 0 }, .b_uv = { 0, 1 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
-    { .a = 8, .b = 2, .c = 1, .a_uv = { 0, 0 }, .b_uv = { 1, 1 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 8, .b = 7, .c = 2, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 8, .b = 2, .c = 1, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
     // top
-    { .a = 2, .b = 7, .c = 5, .a_uv = { 0, 0 }, .b_uv = { 0, 1 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
-    { .a = 2, .b = 5, .c = 3, .a_uv = { 0, 0 }, .b_uv = { 1, 1 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 2, .b = 7, .c = 5, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 2, .b = 5, .c = 3, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
     // bottom
-    { .a = 6, .b = 8, .c = 1, .a_uv = { 0, 0 }, .b_uv = { 0, 1 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF },
-    { .a = 6, .b = 1, .c = 4, .a_uv = { 0, 0 }, .b_uv = { 1, 1 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF }
+    { .a = 6, .b = 8, .c = 1, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
+    { .a = 6, .b = 1, .c = 4, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF }
 };
 
 void load_cube_mesh_data(void){
@@ -59,16 +59,20 @@ void load_cube_mesh_data(void){
     }
 }
 
+/**
+ * @brief loads the vertices and faces in mesh.vertices and mesh.faces
+ *
+ * @param filename
+ * @return returns true, when load is successful.
+ */
 bool load_obj_file_data(char * filename){
-    // TODO : Read the contents of .obj file.
-    // andn load the vertices and faces in
-    // our mesh.vertices and mesh.faces
-
     FILE *file = fopen(filename, "r");
     if (!file){
         perror("Failed to open .obj file");
         return false;
     }
+
+    tex2_t* texcoords = NULL;
 
     char line[512]; // 512 characters per line expected. char: 1 byte
     while (fgets(line, sizeof(line), file)){
@@ -84,8 +88,10 @@ bool load_obj_file_data(char * filename){
                 return false;
             }
         } else if (strncmp(line, "vt ", 3) == 0){
-            // vertex texture
-            // TODO: implement what's for vt
+            // texture coordinate information
+            tex2_t texcoord;
+            sscanf(line, "vt %f %f", &texcoord.u, &texcoord.v);
+            array_push(texcoords, texcoord);
         } else if (strncmp(line, "vn ", 3) == 0){
             // vertex normal
             // TODO: implement what's for vn
@@ -101,9 +107,12 @@ bool load_obj_file_data(char * filename){
                                  &vertex_indices[2], &texture_indices[2], &normal_indices[2]);
             if (matched == 9){
                 face_t face = {
-                    .a = vertex_indices[0],
-                    .b = vertex_indices[1],
-                    .c = vertex_indices[2],
+                    .a = vertex_indices[0]-1,
+                    .b = vertex_indices[1]-1,
+                    .c = vertex_indices[2]-1,
+                    .a_uv = texcoords[texture_indices[0]-1],
+                    .b_uv = texcoords[texture_indices[1]-1],
+                    .c_uv = texcoords[texture_indices[2]-1],
                     .color = 0xFFFFFFFF
                 };
                 array_push(mesh.faces, face);
@@ -115,5 +124,6 @@ bool load_obj_file_data(char * filename){
             continue;
         }
     }
+    array_free(texcoords);
     return true;
 }

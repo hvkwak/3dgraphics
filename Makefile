@@ -15,7 +15,6 @@ run:
 	./src/renderer
 
 export:
-	./src/renderer --export
 	ffmpeg -i ./captures/frame_%04d.png -vf palettegen ./captures/palette.png
 	ffmpeg -i ./captures/frame_%04d.png -i ./captures/palette.png -lavfi "fps=15,scale=320:-1:flags=lanczos[x];[x][1:v]paletteuse" ./output.gif
 
