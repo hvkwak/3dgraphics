@@ -18,10 +18,12 @@ make run
 
 ## Features (latest-first)
 **Based on the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com))**
-<figure>
-  <img src="output.gif" alt="Perspective correct texture mapping" width="320">
-  <figcaption>Perspective correct texture mapping</figcaption>
-</figure>
+<div style="text-align: center; display: inline-block;">
+  <div><strong>Current Output:</strong> Perspective correct texture mapping.</div>
+  <img src="output.gif" alt="Perspective correct texture mapping" width="320">  
+</div>
+
+**Topics Covered So Far**
 * Perspective Correct Textures
 * Texture Mapping
 * Light and Shading, Flat Shading
