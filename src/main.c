@@ -34,9 +34,10 @@ triangle_t* triangles_to_render = NULL;
 // other global variables
 vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
 int previous_frame_time = 0;
-int capture_idx = 0;
-int capture_max = 90;
 bool is_running = false;
+bool is_export = false;
+int capture_idx = 0;
+int capture_max = 150;
 mat4_t proj_mat;
 
 /**
@@ -402,7 +403,7 @@ void render(void){
 
     // TODO: check if there's memory leak
     // Export in PNG
-    if (SDL_GetTicks() > 3000 && capture_idx < capture_max){
+    if (is_export && SDL_GetTicks() > 3000 && capture_idx < capture_max){
 
         // Render full-res texture into small_rt at half size
         SDL_SetRenderTarget(renderer, save_texture);
@@ -411,7 +412,7 @@ void render(void){
         SDL_RenderCopy(renderer, color_buffer_texture, NULL, &dst);
         SDL_RenderFlush(renderer);
 
-        // Read pixels from renderer
+        // Read pixels from renderer: renderer -> save_pixels
         if (SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_ARGB8888, save_pixels, save_pitch) != 0) {
             fprintf(stderr, "SDL_RenderReadPixels failed: %s\n", SDL_GetError());
             return;
@@ -437,9 +438,9 @@ void render(void){
         // Save to PNG
         char path[256];
 #ifdef DEBUG
-        snprintf(path, sizeof(path), "/home/hyobin/Documents/3dgraphics/captures/frame_%04d.png", ++capture_idx);
+        snprintf(path, sizeof(path), "../captures/frame_%04d.png", ++capture_idx);
 #else
-        snprintf(path, sizeof(path), "/home/hyobin/Documents/3dgraphics/captures/frame_%04d.png", ++capture_idx);
+        snprintf(path, sizeof(path), "./captures/frame_%04d.png", ++capture_idx);
 #endif
         if (IMG_SavePNG(save_surface, path) == 0){
             printf("[cap] %s\n", path);
@@ -449,6 +450,9 @@ void render(void){
 
         // Restore render target back to window
         SDL_SetRenderTarget(renderer, NULL);
+
+        // Free save_surface
+        SDL_FreeSurface(save_surface);
     }
     // color buffer texture -> display texture
     SDL_RenderCopy(renderer, color_buffer_texture, NULL, NULL);
@@ -482,7 +486,17 @@ void free_resources(void){
  * @param
  * @return
  */
-int main(void){
+int main(int argc, char *argv[]){
+
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--export") == 0 || strcmp(argv[i], "-e") == 0) {
+            is_export = true;
+        } else {
+            fprintf(stderr, "Unknown argument: %s\n", argv[i]);
+            fprintf(stderr, "Usage: %s [--export]\n", argv[0]);
+            return 1;
+        }
+    }
 
     is_running = initialize() && setup();
 

@@ -69,7 +69,6 @@ bool initialize(void){ // keep it void argument for no parameter.
 void destroy_objects(void){
     SDL_DestroyTexture(color_buffer_texture);
     SDL_DestroyTexture(save_texture);
-    SDL_FreeSurface(save_surface);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit(); // reverse of init.

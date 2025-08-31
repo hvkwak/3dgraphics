@@ -146,13 +146,13 @@ void draw_texel(int x, int y,
     interpolated_v /= interpolated_reciprocal_w;
 
     // map the uv coordinate to the full texture width and height
-    int tex_x = abs((int)(interpolated_u * texture_width));
-    int tex_y = abs((int)(interpolated_v * texture_height));// upside down
+    int tex_x = (int)(interpolated_u * texture_width);
+    int tex_y = (int)(interpolated_v * texture_height);// upside down
     if (texture_width <= tex_x){
-        tex_x -= 1;
+        tex_x = texture_width - 1;
     }
     if (texture_height <= tex_y){
-        tex_y -= 1;
+        tex_y = texture_height -1;
     }
 
     // LSP :: Exception has occurred: signal
