@@ -60,7 +60,7 @@ bool setup(void){
     }
 
     // Create an SDL texture that is used to save
-    // Allocate downsized pixel buffer (ARGB8888 = 4 bytes per pixel) for BMP export
+    // Allocate downsized pixel buffer (ARGB8888 = 4 bytes per pixel) for PNG export
     save_width  = window_width/2;
     save_height = window_height/2;
     save_pitch  = save_width * 4;  // ARGB8888 => 4 bytes per pixel
@@ -114,11 +114,11 @@ bool setup(void){
 
 #ifdef DEBUG
     // For Debugging in Emacs
-    char* png_filename = "../assets/f22.png";
-    char* obj_filename = "../assets/f22.obj";
+    char* png_filename = "../assets/f117.png";
+    char* obj_filename = "../assets/f117.obj";
 #else
-    char* png_filename = "./assets/f22.png";
-    char* obj_filename = "./assets/f22.obj";
+    char* png_filename = "./assets/f117.png";
+    char* obj_filename = "./assets/f117.obj";
 #endif
     if (!load_obj_file_data(obj_filename)){
         return false;
@@ -287,14 +287,9 @@ void update(void){
 
         // get the angle between light and normal -> color change due to light
         float cos_angle_normal_light = -vec3_dot(vec_normal, light.direction); // inverse
-        /* float percentage_factor = 0.0; */
-        /* if (cos_angle_normal_light > 0.0){ */
-        /*     percentage_factor = cos_angle_normal_light; */
-        /* } */
         color_t new_color = (color_t)light_apply_intensity(mesh_face.color, cos_angle_normal_light);
 
         vec4_t projected_points[3];
-
         // Project the face.
         for (int j = 0; j < 3; j++){
 
@@ -340,12 +335,10 @@ void update(void){
     int num_triangles = array_length(triangles_to_render);
     for (int i = 0; i < num_triangles - 1; i++){
         bool swapped = false;
-        for (int j = 0; j < num_triangles -1-i; j++){
+        for (int j = 0; j < num_triangles-1-i; j++){
             swapped = swap_triangle(&triangles_to_render[j], &triangles_to_render[j+1]);
-            if (!swapped){
-                break;
-            }
         }
+        if (!swapped) break;
     }
 }
 

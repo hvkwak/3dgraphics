@@ -24,7 +24,7 @@ typedef struct {
 } triangle_t; // triangle for rendering
 
 bool swap_triangle(triangle_t* a, triangle_t* b);
-int compare_triangle(const void * a, const void * b);
+bool compare_triangle(const void * a, const void * b);
 void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color);
 void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color);
 vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p);

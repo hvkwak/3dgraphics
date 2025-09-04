@@ -24,6 +24,7 @@ make run
 </div>
 
 **Topics Covered So Far**
+* Z-Buffer: Depth per Pixel
 * Textured OBJ Files
 * Decoding PNG Files
 * Perspective Correct Texture Mapping

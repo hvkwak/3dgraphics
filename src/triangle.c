@@ -1,7 +1,6 @@
 #include "triangle.h"
 #include "display.h"
 #include "swap.h"
-#include "math.h"
 
 /**
  * @brief swaps the two triangles
@@ -15,21 +14,20 @@ bool swap_triangle(triangle_t* pa, triangle_t* pb){
         *pa = *pb;
         *pb = tmp;
         return true;
-    }else{
-        return false;
     }
+    return false;
 }
 
 /**
- * @brief compare triangle
+ * @brief compares the depth of the two triangels.
  *
  * @param two pointers to triangles a and b
- * @return true, if a.avg_depth > b.avg_depth
+ * @return true, if a.avg_depth < b.avg_depth
  */
-int compare_triangle(const void * a, const void * b){
+bool compare_triangle(const void * a, const void * b){
     const triangle_t* A = (const triangle_t*)a;
     const triangle_t* B = (const triangle_t*)b;
-    return -(A->avg_depth > B->avg_depth) + (A->avg_depth < B->avg_depth);
+    return (A->avg_depth < B->avg_depth);
 }
 
 /**
@@ -67,21 +65,19 @@ vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p) {
     vec2_t pb = vec2_sub(b, p); // from p to b
 
     // Compute the area of the full parallelogram of ABC using 2D cross product
-    float area_full = fabsf(ac.x * ab.y - ac.y * ab.x); // AC x AB
+    float area_full = (ac.x * ab.y - ac.y * ab.x); // AC x AB
 
     // Alpha is the area of the small parallelogram divided by the area of the full parallelogram
-    float alpha = fabsf(pc.x * pb.y - pc.y * pb.x) / area_full; // ||PC x PB||
-    if (alpha > 1.0){
-        // truncate.
-        alpha = 0.9999999;
-    }
+    float alpha = (pc.x * pb.y - pc.y * pb.x) / area_full; // ||PC x PB||
+
+    // clamp
+    if (alpha > 1.0f) alpha = 0.99999;
+    if (alpha < 0.0f) alpha = 0.00001;
 
     // Beta is the area of the small parallelogram APC divided by the area of the full parallelogram/triangle ABC
-    float beta = fabsf(ac.x * ap.y - ac.y * ap.x) / area_full; // ||AC x AP||
-    if (beta > 1.0){
-        // truncate.
-        beta = 0.9999999;
-    }
+    float beta = (ac.x * ap.y - ac.y * ap.x) / area_full; // ||AC x AP||
+    if (beta > 1.0) beta = 0.99999;
+    if (beta < 0.0) beta = 0.00001;
 
     // Weight gamma is easily found since barycentric coordinates always add up to 1.0
     float gamma = 1.0 - alpha - beta;
