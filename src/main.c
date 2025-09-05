@@ -13,6 +13,8 @@
 #include "texture.h"
 #include "triangle.h"
 #include "upng.h"
+#include "camera.h"
+#include "draw.h"
 
 // render/cull mode enums: DO NOT move to other files, otherwise "multiple" definition error.
 enum cull_method {
@@ -29,17 +31,12 @@ enum render_method {
     RENDER_TEXTURED_WIRE
 } render_method;
 
-// Array of triangles that should be rendered frame by frame
-triangle_t* triangles_to_render = NULL;
 
-// other global variables
-vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
-int previous_frame_time = 0;
-bool is_running = false;
+bool is_running = true;
 bool is_export = false;
+int previous_frame_time = 0;
 int capture_idx = 0;
 int capture_max = 150;
-mat4_t proj_mat;
 
 /**
  * @brief setup the color buffer and color buffer texture
@@ -56,6 +53,12 @@ bool setup(void){
     // Allocate the required bytes in memory for the color buffer.
     color_buffer = (color_t*)malloc(sizeof(color_t) * window_width * window_height);
     if (color_buffer == NULL){
+        return false;
+    }
+
+    // Allocate Z-buffer
+    z_buffer = (float*)malloc(sizeof(float) * window_width * window_height);
+    if (z_buffer == NULL){
         return false;
     }
 
@@ -98,11 +101,6 @@ bool setup(void){
         return false;
     }
 
-    // initialize the perspective projection matrix
-    float fov = 1.04716666667; // PI/3 = 60 degrees
-    float aspect = (float)window_height / (float)window_width;
-    float znear = 1.0; // not too small, due to properties of NDC coordinates!
-    float zfar = 100.0;
     proj_mat = mat4_make_perspective(fov, aspect, znear, zfar);
 
     // Manually load the hardcoded texture data from the static array
@@ -114,11 +112,11 @@ bool setup(void){
 
 #ifdef DEBUG
     // For Debugging in Emacs
-    char* png_filename = "../assets/f117.png";
-    char* obj_filename = "../assets/f117.obj";
+    char* png_filename = "../assets/f22.png";
+    char* obj_filename = "../assets/f22.obj";
 #else
-    char* png_filename = "./assets/f117.png";
-    char* obj_filename = "./assets/f117.obj";
+    char* png_filename = "./assets/f22.png";
+    char* obj_filename = "./assets/f22.obj";
 #endif
     if (!load_obj_file_data(obj_filename)){
         return false;
@@ -173,8 +171,8 @@ void process_input(void){
                 // 4 Displays textured face and wire
                 render_method = RENDER_TEXTURED_WIRE;
                 break;
-            }else if (event.key.keysym.sym == SDLK_c){
-                // C Enables back-face culling c
+            }else if (event.key.keysym.sym == SDLK_e){
+                // E Enables back-face culling e
                 cull_method = CULL_BACKFACE;
                 break;
             }else if (event.key.keysym.sym == SDLK_d){
@@ -208,13 +206,13 @@ void update(void){
 
     previous_frame_time = SDL_GetTicks(); // Initiate after hitting SDL_INIT
 
-    // Initialize the array of triangles to render
-    triangles_to_render = NULL;
+    // Initialize the counter of triangles to render for the current frame.
+    num_traingles_to_render = 0;
 
     mesh.rotation.x += 0.01;
     /* mesh.rotation.y += 0.01; */
     /* mesh.rotation.z += 0.01; */
-    /* mesh.scale.x += 0.002; */
+     /* mesh.scale.x += 0.002; */
     /* mesh.scale.y += 0.001; */
     /* mesh.translation.x += 0.01; */
     mesh.translation.z = 5.0; // Translate the vertex away from the camera(0, 0, 0)
@@ -308,15 +306,11 @@ void update(void){
             projected_points[j].y += (float)window_height / 2.0;
         }
 
-        // Calculate the average depth for each face based on the vertices after transformation.
-        float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;
-
         triangle_t projected_triangle = {
             .points = {{projected_points[0].x, projected_points[0].y, projected_points[0].z, projected_points[0].w},
                        {projected_points[1].x, projected_points[1].y, projected_points[1].z, projected_points[1].w},
                        {projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w}},
             .color = new_color,
-            .avg_depth = avg_depth,
             .textcoords = {
                 {mesh_face.a_uv.u, mesh_face.a_uv.v},
                 {mesh_face.b_uv.u, mesh_face.b_uv.v},
@@ -325,41 +319,32 @@ void update(void){
         };
 
         // Save the projected triangle in the array of triangles
-        array_push(triangles_to_render, projected_triangle);
-    }
-
-    // Sort the triangles to render by their avg_depth
-    // qsort(triangles_to_render, array_length(triangles_to_render), sizeof(triangle_t), compare_triangle);
-
-    // BubbleSort
-    int num_triangles = array_length(triangles_to_render);
-    for (int i = 0; i < num_triangles - 1; i++){
-        bool swapped = false;
-        for (int j = 0; j < num_triangles-1-i; j++){
-            swapped = swap_triangle(&triangles_to_render[j], &triangles_to_render[j+1]);
+        if (num_traingles_to_render < MAX_TRIANGLES_PER_MESH){
+          triangles_to_render[num_traingles_to_render] = projected_triangle;
+          num_traingles_to_render++;
         }
-        if (!swapped) break;
     }
 }
 
 void render(void){
 
     clear_color_buffer(0xFF000000);
+    clear_z_buffer();
 
     // draw_grid(0xFFAAAAAA);
 
     // Loop all projected points and render them
-    int num_triangles = array_length(triangles_to_render);
-    for (int i = 0; i < num_triangles; i++) {
+    for (int i = 0; i < num_traingles_to_render; i++) {
+
         // render all vertex points
         triangle_t triangle = triangles_to_render[i];
 
         // draw filled Triangle
         if (render_method == RENDER_FILL_TRIANGLE || render_method == RENDER_FILL_TRIANGLE_WIRE){
-            draw_filled_triangle(triangle.points[0].x, triangle.points[0].y,
-                                 triangle.points[1].x, triangle.points[1].y,
-                                 triangle.points[2].x, triangle.points[2].y,
-                                 triangle.color); // dark gray
+			draw_filled_triangle(triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w,
+								 triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w,
+								 triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w,
+								 triangle.color); // dark gray
         }
 
         // draw textured triangle
@@ -385,9 +370,6 @@ void render(void){
             draw_rectangle(triangle.points[2].x, triangle.points[2].y, 3, 3, 0xFFFF0000);
         }
     }
-
-    // Clear the array of triangles to render every frame loop
-    array_free(triangles_to_render);
 
     // render_color_buffer();
     // color buffer -> color buffer texture
@@ -463,7 +445,6 @@ void render(void){
  * @return
  */
 void free_resources(void){
-
     if (png_texture != NULL){
         upng_free(png_texture);
     }
@@ -472,6 +453,9 @@ void free_resources(void){
     }
     if (color_buffer != NULL){
         free(color_buffer);
+    }
+    if (z_buffer != NULL){
+        free(z_buffer);
     }
     if (array_length(mesh.vertices) != 0){
         array_free(mesh.vertices);
@@ -499,7 +483,15 @@ int main(int argc, char *argv[]){
         }
     }
 
-    is_running = initialize() && setup();
+	if (!initialize()){
+		printf("initialization() failed");
+		return 1;
+	};
+
+	if (!setup()){
+		printf("Setup() failed");
+		return 1;
+	}
 
     while (is_running) {
         process_input();
@@ -507,7 +499,8 @@ int main(int argc, char *argv[]){
         render();
     }
 
-    destroy_objects();
+	destroy_save();
+    destroy_display();
     free_resources();
     return 0;
 }

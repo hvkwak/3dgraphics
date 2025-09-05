@@ -21,3 +21,13 @@ void flip_pixels_vertically(Uint8* pixels, int width, int height, int pitch) {
     }
     free(temp_row);
 }
+
+/**
+ * @brief frees color buffer, destroys the SDL window and its renderer.
+ *
+ * @param
+ * @return
+ */
+void destroy_save(void){
+    SDL_DestroyTexture(save_texture);
+}

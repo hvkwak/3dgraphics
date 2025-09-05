@@ -19,12 +19,12 @@ make run
 ## Features (latest-first)
 **Based on the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com))**
 <div style="text-align: center; display: inline-block;">
-  <div><strong>Current Output:</strong> Rendering a textured .obj file </div>
-  <img src="output.gif" alt="Rendering a textured .obj file" width="320">  
+  <div><strong>Current Output:</strong> Rendering with Z-Buffer. </div>
+  <img src="output.gif" alt="Rendering with Z-Buffer" width="320">
 </div>
 
 **Topics Covered So Far**
-* Z-Buffer: Depth per Pixel
+* Z-Buffer
 * Textured OBJ Files
 * Decoding PNG Files
 * Perspective Correct Texture Mapping

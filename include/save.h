@@ -12,5 +12,6 @@ extern SDL_Surface *save_surface;
 extern SDL_Texture *save_texture;
 
 void flip_pixels_vertically(Uint8* pixels, int width, int height, int pitch);
+void destroy_save(void);
 
 #endif // SAVE_H
