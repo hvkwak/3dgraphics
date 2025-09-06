@@ -35,8 +35,9 @@ enum render_method {
 bool is_running = true;
 bool is_export = false;
 int previous_frame_time = 0;
+float delta_time;
 int capture_idx = 0;
-int capture_max = 150;
+int capture_max = 300;
 
 /**
  * @brief setup the color buffer and color buffer texture
@@ -71,8 +72,8 @@ bool setup(void){
     // allocate save pixels
     save_pixels = (Uint8 *)malloc(save_pitch * save_height);
     if (!save_pixels) {
-      fprintf(stderr, "Memory allocation failed\n");
-      return false;
+        fprintf(stderr, "Memory allocation failed\n");
+        return false;
     }
 
 
@@ -145,41 +146,52 @@ void process_input(void){
         case SDL_KEYDOWN:
             if (event.key.keysym.sym == SDLK_ESCAPE){
                 is_running = false;
-                break;
             }
-            else if (event.key.keysym.sym == SDLK_1){
+            if (event.key.keysym.sym == SDLK_1){
                 // 1 Displays the wireframe and a small red dot for each triangle vertex
                 render_method = RENDER_WIRE_VERTEX;
-                break;
             }else if (event.key.keysym.sym == SDLK_2){
                 // 2 Displays only the wireframe lines
                 render_method = RENDER_WIRE;
-                break;
             }else if (event.key.keysym.sym == SDLK_3){
                 // 3 Displays filled triangles with a solid color
                 render_method = RENDER_FILL_TRIANGLE;
-                break;
             }else if (event.key.keysym.sym == SDLK_4){
                 // 4 Displays both filled triangles and wireframe lines
                 render_method = RENDER_FILL_TRIANGLE_WIRE;
-                break;
             }else if (event.key.keysym.sym == SDLK_5){
                 // 4 Displays textured face
                 render_method = RENDER_TEXTURED;
-                break;
             }else if (event.key.keysym.sym == SDLK_6){
                 // 4 Displays textured face and wire
                 render_method = RENDER_TEXTURED_WIRE;
-                break;
-            }else if (event.key.keysym.sym == SDLK_e){
-                // E Enables back-face culling e
+            }else if (event.key.keysym.sym == SDLK_b){
+                // b Enables back-face culling
                 cull_method = CULL_BACKFACE;
-                break;
-            }else if (event.key.keysym.sym == SDLK_d){
-                // D Disables the back-face culling
+            }else if (event.key.keysym.sym == SDLK_f){
+                // f Disables the back-face culling
                 cull_method = CULL_NONE;
-                break;
+            }else if (event.key.keysym.sym == SDLK_d){
+                camera.yaw += 1.0*delta_time;
+            }else if (event.key.keysym.sym == SDLK_a){
+                camera.yaw -= 1.0*delta_time;
+            }else if (event.key.keysym.sym == SDLK_w){
+                // forward
+                camera.forward_velocity = vec3_mul(camera.direction, 5.0*delta_time);
+                camera.position = vec3_add(camera.position, camera.forward_velocity);
+            }else if (event.key.keysym.sym == SDLK_s){
+                // downward
+                camera.forward_velocity = vec3_mul(camera.direction, 5.0*delta_time);
+                camera.position = vec3_sub(camera.position, camera.forward_velocity);
+
+            }else if (event.key.keysym.sym == SDLK_UP){
+                // up
+                camera.position.y += 3.0*delta_time;
+            }else if (event.key.keysym.sym == SDLK_DOWN){
+                // down
+                camera.position.y -= 3.0*delta_time;
             }
+            break;
     }
 }
 
@@ -196,6 +208,7 @@ void process_input(void){
  */
 void update(void){
 
+    // Note: This will control the FPS.
     // Wait some time until the it reaches the target frame time in milliseconds
     int time_to_wait = FRAME_TARGET_TIME - (SDL_GetTicks() - previous_frame_time);
 
@@ -204,18 +217,38 @@ void update(void){
         SDL_Delay(time_to_wait);
     }
 
+    // Note: This controls the unit transformations per second, not per frame.
+    // Get a delta time factor converted to seconds to be used to update our game objects
+    delta_time = (SDL_GetTicks() - previous_frame_time)/1000.0;
+
     previous_frame_time = SDL_GetTicks(); // Initiate after hitting SDL_INIT
 
     // Initialize the counter of triangles to render for the current frame.
     num_traingles_to_render = 0;
 
-    mesh.rotation.x += 0.01;
-    /* mesh.rotation.y += 0.01; */
-    /* mesh.rotation.z += 0.01; */
-     /* mesh.scale.x += 0.002; */
+    // Note: having the delta-time ensures how many units I want to change per second, not per frame.
+    mesh.rotation.x += 0.0*delta_time;
+    mesh.rotation.y += 0.0*delta_time;
+    mesh.rotation.z += 0.0*delta_time;
+    /* mesh.scale.x += 0.002; */
     /* mesh.scale.y += 0.001; */
     /* mesh.translation.x += 0.01; */
-    mesh.translation.z = 5.0; // Translate the vertex away from the camera(0, 0, 0)
+    mesh.translation.z = 5.0; // Translate the vertex away to (0, 0, 5)
+
+    // Change the camera position per animation frame
+    /* camera.position.x += 0.5*delta_time; */
+    /* camera.position.y += 0.5*delta_time; */
+
+    // Create the view matrix
+    // initialize the target looking at the positive z-axis
+    vec3_t target = {0, 0, 1};
+    camera.direction = vec3_rotate_y(target, camera.yaw);
+    target = vec3_add(camera.position, camera.direction);
+
+
+    vec3_t up_direction = {0, 1, 0};
+    view_mat = mat4_look_at(camera.position, target, up_direction);
+
 
     // Create a scale, rotation, and translation mamtrix that will be used to multiply the mesh vertices
     mat4_t scale_matrix = mat4_make_scale(mesh.scale.x, mesh.scale.y, mesh.scale.z);
@@ -241,17 +274,20 @@ void update(void){
 
             // Use a matrix to scale, translate, and rotate the original vertex
             // Create a World Matrix combining scale, translatioon, and rotation
-            mat4_t world_matrix = mat4_identity();
+            world_mat = mat4_identity();
 
             // Order matters: scale -> rotate -> translate
-            world_matrix = mat4_mul_mat4(scale_matrix, world_matrix);
-            world_matrix = mat4_mul_mat4(rotation_matrix_x, world_matrix);
-            world_matrix = mat4_mul_mat4(rotation_matrix_y, world_matrix);
-            world_matrix = mat4_mul_mat4(rotation_matrix_z, world_matrix);
-            world_matrix = mat4_mul_mat4(translation_matrix, world_matrix);
+            world_mat = mat4_mul_mat4(scale_matrix, world_mat);
+            world_mat = mat4_mul_mat4(rotation_matrix_x, world_mat);
+            world_mat = mat4_mul_mat4(rotation_matrix_y, world_mat);
+            world_mat = mat4_mul_mat4(rotation_matrix_z, world_mat);
+            world_mat = mat4_mul_mat4(translation_matrix, world_mat);
 
             // multiply the world matrix by the original vector
-            transformed_vertex = mat4_mul_vec4(world_matrix, transformed_vertex);
+            transformed_vertex = mat4_mul_vec4(world_mat, transformed_vertex);
+
+            // Multiply the view matrix by the vector to transform the scene to camera space
+            transformed_vertex = mat4_mul_vec4(view_mat, transformed_vertex);
 
             // Save transformed vertex in the array of transformed vertices
             transformed_vertices[j] = transformed_vertex;
@@ -271,15 +307,17 @@ void update(void){
         vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
         vec3_normalize(&vec_normal);
 
-        vec3_t vec_camera = vec3_sub(camera_position, vectorA); // from A to camera position
-        vec3_normalize(&vec_camera);
+        // camera will be the origin
+        vec3_t origin = {0, 0, 0};
+        vec3_t camera_ray = vec3_sub(vectorA, origin); // from A to camera position
+        vec3_normalize(&camera_ray);
 
-        float cos_angle_normal_camera = vec3_dot(vec_normal, vec_camera);
+        float cos_angle_normal_camera = vec3_dot(vec_normal, camera_ray);
 
         // Back-face Culling
         if (cull_method == CULL_BACKFACE){
-            if (cos_angle_normal_camera < 0) { // invisible: beyond 90°
-              continue;
+            if (cos_angle_normal_camera > 0) { // invisible: beyond 90°
+                continue;
             }
         }
 

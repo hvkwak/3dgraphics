@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 
-#define FPS 30
+#define FPS 60
 #define FRAME_TARGET_TIME (1000/FPS) // 1000 ms = 1 sec, depends on FPS
 
 // Declare a new type of definition to hold 32-bit colors value

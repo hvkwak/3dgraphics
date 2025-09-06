@@ -105,7 +105,6 @@ void vec3_normalize(vec3_t* v){
 
 /**
  * @brief returns cross product of the two input vectors
- *        based on left-handed coordinate system
  *
  * @param vec3_t a: 3D vector a
  *        vec3_t b: 3D vector b
@@ -113,7 +112,7 @@ void vec3_normalize(vec3_t* v){
  */
 vec3_t vec3_cp(vec3_t a, vec3_t b){
     vec3_t result = {
-        .x = a.y * b.z - a.z*b.y,
+        .x = a.y * b.z - a.z * b.y,
         .y = a.z * b.x - a.x * b.z,
         .z = a.x * b.y - a.y * b.x
     };
