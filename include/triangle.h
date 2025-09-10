@@ -25,8 +25,9 @@ typedef struct {
 } triangle_t; // triangle for rendering
 
 extern triangle_t triangles_to_render[MAX_TRIANGLES_PER_MESH];
-extern int num_traingles_to_render;
 
+void set_num_triangles_to_render(int num);
+int get_num_triangles_to_render(void);
 bool swap_triangle(triangle_t* a, triangle_t* b);
 bool compare_triangle(const void * a, const void * b);
 void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color);

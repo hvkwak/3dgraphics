@@ -5,7 +5,7 @@
 #include "array.h"
 
 // global variable: declared in mesh.h, initialized here in mesh.c
-mesh_t mesh = {
+static mesh_t mesh = {
     .vertices = NULL,
     .faces = NULL,
     .rotation = {0, 0, 0},
@@ -46,6 +46,10 @@ face_t cube_faces[N_CUBE_FACES] = {
     { .a = 6, .b = 1, .c = 4, .a_uv = { 0, 1 }, .b_uv = { 1, 0 }, .c_uv = { 1, 1 }, .color = 0xFFFFFFFF }
 };
 
+mesh_t* get_mesh(void){
+    return &mesh;
+}
+
 void load_cube_mesh_data(void){
 
     for (int i = 0; i < N_CUBE_VERTICES; i++){
@@ -57,6 +61,23 @@ void load_cube_mesh_data(void){
         face_t cube_face = cube_faces[i];
         array_push(mesh.faces, cube_face);
     }
+}
+
+void mesh_rotation(float thetaX, float thetaY, float thetaZ){
+    mesh.rotation.x += thetaX;
+    mesh.rotation.y += thetaY;
+    mesh.rotation.z += thetaZ;
+}
+
+void mesh_scale(float X, float Y){
+    mesh.scale.x += X;
+    mesh.scale.y += Y;
+}
+
+void mesh_translation(float X, float Y, float Z){
+    mesh.translation.x += X;
+    mesh.translation.y += Y;
+    mesh.translation.z += Z;
 }
 
 /**
@@ -126,4 +147,14 @@ bool load_obj_file_data(char * filename){
     }
     array_free(texcoords);
     return true;
+}
+
+
+void free_mesh(void){
+    if (array_length(mesh.vertices) != 0){
+        array_free(mesh.vertices);
+    }
+    if (array_length(mesh.faces) != 0){
+        array_free(mesh.faces);
+    }
 }

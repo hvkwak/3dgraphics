@@ -1,8 +1,10 @@
 #ifndef MESH_H
 #define MESH_H
-#include "vector.h" // Emacs Error: Shift+End doesn't work when there's error.
+
+#include "vector.h"
 #include "triangle.h"
 #include <stdbool.h>
+
 #define N_CUBE_VERTICES 8
 #define N_CUBE_FACES (6 * 2) // 6 cube faces, 2 triangles per face
 
@@ -20,9 +22,12 @@ typedef struct{
     vec3_t translation; // translation with x, y, and z values
 } mesh_t;
 
-extern mesh_t mesh; // global variable mesh.
-
 void load_cube_mesh_data(void);
 bool load_obj_file_data(char * filename);
+mesh_t* get_mesh(void);
+void mesh_rotation(float thetaX, float thetaY, float thetaZ);
+void mesh_scale(float X, float Y);
+void mesh_translation(float X, float Y, float Z);
+void free_mesh(void);
 
 #endif // MESH_H

@@ -11,9 +11,17 @@ typedef struct{
     float yaw; //y
 } camera_t;
 
+// Setters
+void set_camera_yaw(float delta);
+void set_camera_translate(float delta);
+void set_camera_forward(float delta_time);
+void set_camera_backward(float delta_time);
+
 // Proj Matrix Parameter
-extern float fov;
-extern float aspect;
+extern float fov_x;
+extern float fov_y;
+extern float aspect_x;
+extern float aspect_y;
 extern float znear;
 extern float zfar;
 

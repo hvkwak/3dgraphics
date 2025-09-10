@@ -5,8 +5,17 @@
 
 // Array of triangles that should be rendered frame by frame
 triangle_t triangles_to_render[MAX_TRIANGLES_PER_MESH];
-int num_traingles_to_render;
+static int num_traingles_to_render;
 
+
+
+void set_num_triangles_to_render(int num){
+    num_traingles_to_render = num;
+}
+
+int get_num_triangles_to_render(void){
+    return num_traingles_to_render;
+}
 
 /**
  * @brief swaps the two triangles

@@ -4,6 +4,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 // 2D Vector functions
 ////////////////////////////////////////////////////////////////////////////////
+vec2_t vec2_new(float x, float y) {
+    vec2_t result = { x, y };
+    return result;
+}
+
+
 float vec2_length(vec2_t v){
     return sqrt(v.x*v.x + v.y*v.y);
 }
@@ -58,6 +64,16 @@ vec2_t vec2_from_vec4(vec4_t v){
 ////////////////////////////////////////////////////////////////////////////////
 // 3D Vector functions
 ////////////////////////////////////////////////////////////////////////////////
+vec3_t vec3_new(float x, float y, float z) {
+    vec3_t result = { x, y, z };
+    return result;
+}
+
+vec3_t vec3_clone(vec3_t* v){
+    vec3_t result = {v->x, v->y, v->z};
+    return result;
+}
+
 float vec3_length(vec3_t v){
     return sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
 }
@@ -106,8 +122,9 @@ void vec3_normalize(vec3_t* v){
 /**
  * @brief returns cross product of the two input vectors
  *
- * @param vec3_t a: 3D vector a
- *        vec3_t b: 3D vector b
+ * @param
+ * vec3_t a: 3D vector a
+ * vec3_t b: 3D vector b
  * @return vec3_t result: cross product
  */
 vec3_t vec3_cp(vec3_t a, vec3_t b){

@@ -17,5 +17,8 @@ extern uint32_t* mesh_texture;
 
 extern upng_t* png_texture;
 bool load_png_texture_data(char* filename);
+tex2_t tex2_clone(tex2_t* t);
+
+void free_texture(void);
 
 #endif // TEXTURE_H

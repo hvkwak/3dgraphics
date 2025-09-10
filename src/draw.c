@@ -226,6 +226,20 @@ void draw_triangle_pixel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t po
 	interpolated_reciprocal_w = (1/point_a.w)*alpha + (1/point_b.w)*beta + (1/point_c.w)*gamma;
 	interpolated_reciprocal_w = 1/interpolated_reciprocal_w;
 
+    // TODO: Can we use 1/z_ndc, instead of 1/z?
+    /* float interpolated_reciprocal_zNDC; */
+	/* interpolated_reciprocal_zNDC = (1/point_a.z)*alpha + (1/point_b.z)*beta + (1/point_c.z)*gamma; */
+	/* interpolated_reciprocal_zNDC = 1/interpolated_reciprocal_w; */
+    /* if (interpolated_reciprocal_zNDC < z_buffer[(window_width * y) + x]){ */
+
+    /*     // Draw a pixel at position (x, y) with the color that comes from the mapped */
+    /*     // texture */
+    /*     draw_pixel(x, y, color); */
+
+    /*     // Update the z-buffer value with the 1/w of this current pixel. */
+    /*     z_buffer[(window_width * y) + x] = interpolated_reciprocal_zNDC; */
+    /* } */
+
     // Only draw the pixel if the depth value is less than the one previously stored in the z-buffer.
     if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]){
 
