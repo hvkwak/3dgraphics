@@ -1,7 +1,9 @@
-#include "draw.h"
+#include "color.h"
 #include "vector.h"
 #include "texture.h"
 #include "util.h"
+#include <stdlib.h>
+#include <math.h>
 
 /**
  * @brief draws a pixel
@@ -10,11 +12,21 @@
  *        color: color of pixel
  * @return
  */
-void draw_pixel(int x, int y, color_t color){
+void draw_pixel(int x, int y, color_t color, int window_width, int window_height, color_t* color_buffer){
 
-    if (0 <= x && x < window_width && 0 <= y && y < window_height){
-        color_buffer[window_width*y + x] = color;
+    if (x < 0){
+        return;
     }
+    if (window_width <= x){
+        return;
+    }
+    if (y < 0){
+        return;
+    }
+    if (window_height <= y){
+        return;
+    }
+    color_buffer[window_width*y + x] = color;
 }
 
 /// Exercise: Draw a background grid that fills the entire window. Lines should be rendered at every row/col multiple of 10.
@@ -24,7 +36,7 @@ void draw_pixel(int x, int y, color_t color){
  * @param color: color of grid pixels
  * @return
  */
-void draw_grid(color_t color){
+void draw_grid(color_t color, int window_width, int window_height, color_t* color_buffer){
 
     int nx = window_width/10;
     int ny = window_height/10;
@@ -54,7 +66,7 @@ void draw_grid(color_t color){
  *        color_t : color of line points
  * @return
  */
-void draw_line(int x0, int y0, int x1, int y1, color_t color){
+void draw_line(int x0, int y0, int x1, int y1, color_t color, int window_width, int window_height, color_t* color_buffer){
     int delta_x = (x1 - x0);
     int delta_y = (y1 - y0);
 
@@ -68,7 +80,7 @@ void draw_line(int x0, int y0, int x1, int y1, color_t color){
     float current_y = y0;
 
     for (int i = 0; i <= side_length; i++){
-        draw_pixel(round(current_x), round(current_y), color);
+        draw_pixel(round(current_x), round(current_y), color, window_width, window_height, color_buffer);
         current_x += x_inc;
         current_y += y_inc;
     }
@@ -86,7 +98,7 @@ void draw_line(int x0, int y0, int x1, int y1, color_t color){
 * y: height of the rectangle
 * @return
 */
-void draw_rectangle(int x, int y, int w, int h, color_t color){
+void draw_rectangle(int x, int y, int w, int h, color_t color, int window_width, int window_height, color_t* color_buffer){
 
     // check arguments
     if (x < 0 || x >= window_width) {
@@ -112,8 +124,7 @@ void draw_rectangle(int x, int y, int w, int h, color_t color){
     for(int j = 0; j < h; j++){
         for (int i = 0; i < w; i++){
             if ((y + j) < window_height && (x + i) < window_width){
-                draw_pixel(x+i, y+j, color); // use draw_pixel()!
-                //color_buffer[window_width*(y+j) + (x + i)] = color;
+                draw_pixel(x+i, y+j, color, window_width, window_height, color_buffer); // use draw_pixel()!
             }
         }
     }
@@ -131,7 +142,9 @@ void draw_rectangle(int x, int y, int w, int h, color_t color){
 void draw_texel(int x, int y,
                 vec4_t point_a, vec4_t point_b, vec4_t point_c,
                 tex2_t uv_a, tex2_t uv_b, tex2_t uv_c,
-                uint32_t* texture)
+                uint32_t* texture,
+                int window_width, int window_height,
+                color_t* color_buffer, float* z_buffer)
 {
     vec2_t p = {x, y}; // point
     vec2_t a = vec2_from_vec4(point_a); // take the first two coordinates
@@ -148,6 +161,9 @@ void draw_texel(int x, int y,
     float interpolated_u;
     float interpolated_v;
     float interpolated_reciprocal_w;
+
+    int texture_width = get_texture_width();
+    int texture_height = get_texture_height();
 
     // Note 1: Potential misunderstanding due to wording(?)
     // Perspective is non-linear transform that involves dividing by w.
@@ -199,53 +215,7 @@ void draw_texel(int x, int y,
 
         // Draw a pixel at position (x, y) with the color that comes from the mapped
         // texture
-        draw_pixel(x, y, texture[(texture_width * tex_y) + tex_x]);
-
-        // Update the z-buffer value with the 1/w of this current pixel.
-        z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
-    }
-}
-
-
-void draw_triangle_pixel(int x, int y, vec4_t point_a, vec4_t point_b, vec4_t point_c, color_t color){
-
-    vec2_t p = {x, y}; // point
-    vec2_t a = vec2_from_vec4(point_a); // take the first two coordinates
-    vec2_t b = vec2_from_vec4(point_b);
-    vec2_t c = vec2_from_vec4(point_c);
-
-    vec3_t weights = barycentric_weights(a, b, c, p);
-
-    float alpha = weights.x;
-    float beta = weights.y;
-    float gamma = weights.z;
-
-    // Variables to store the interpolated values of U, V and also 1/w for the current pixel
-    float interpolated_reciprocal_w;
-
-	interpolated_reciprocal_w = (1/point_a.w)*alpha + (1/point_b.w)*beta + (1/point_c.w)*gamma;
-	interpolated_reciprocal_w = 1/interpolated_reciprocal_w;
-
-    // TODO: Can we use 1/z_ndc, instead of 1/z?
-    /* float interpolated_reciprocal_zNDC; */
-	/* interpolated_reciprocal_zNDC = (1/point_a.z)*alpha + (1/point_b.z)*beta + (1/point_c.z)*gamma; */
-	/* interpolated_reciprocal_zNDC = 1/interpolated_reciprocal_w; */
-    /* if (interpolated_reciprocal_zNDC < z_buffer[(window_width * y) + x]){ */
-
-    /*     // Draw a pixel at position (x, y) with the color that comes from the mapped */
-    /*     // texture */
-    /*     draw_pixel(x, y, color); */
-
-    /*     // Update the z-buffer value with the 1/w of this current pixel. */
-    /*     z_buffer[(window_width * y) + x] = interpolated_reciprocal_zNDC; */
-    /* } */
-
-    // Only draw the pixel if the depth value is less than the one previously stored in the z-buffer.
-    if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]){
-
-        // Draw a pixel at position (x, y) with the color that comes from the mapped
-        // texture
-        draw_pixel(x, y, color);
+        draw_pixel(x, y, texture[(texture_width * tex_y) + tex_x], window_width, window_height, color_buffer);
 
         // Update the z-buffer value with the 1/w of this current pixel.
         z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;

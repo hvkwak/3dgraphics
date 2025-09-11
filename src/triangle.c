@@ -1,13 +1,32 @@
 #include "triangle.h"
-#include "display.h"
 #include "swap.h"
 #include "draw.h"
+#include "util.h"
+#include <stdlib.h>
+
 
 // Array of triangles that should be rendered frame by frame
-triangle_t triangles_to_render[MAX_TRIANGLES_PER_MESH];
+static triangle_t triangles_to_render[MAX_TRIANGLES_PER_MESH];
 static int num_traingles_to_render;
 
+void update_triangles_to_render(int i, triangle_t triangle){
+    triangles_to_render[i] = triangle;
+}
 
+triangle_t get_triangle_to_render(int i){
+    if (i < MAX_TRIANGLES_PER_MESH){
+        return triangles_to_render[i];
+    }else{
+        triangle_t triangle = {
+            .avg_depth = 0.0,
+            .points = {{0.0, 0.0, 0.0, 0.0}},
+            .textcoords = {{0.0, 0.0}},
+            .color = 0xFF000000
+        };
+        return triangle;
+    }
+
+}
 
 void set_num_triangles_to_render(int num){
     num_traingles_to_render = num;
@@ -45,23 +64,74 @@ bool compare_triangle(const void * a, const void * b){
     return (A->avg_depth < B->avg_depth);
 }
 
+
+
+void draw_triangle_pixel(int x, int y,
+                         vec4_t point_a, vec4_t point_b, vec4_t point_c,
+                         color_t color,
+                         int window_width, int window_height,
+                         color_t* color_buffer, float* z_buffer){
+
+    vec2_t p = {x, y}; // point
+    vec2_t a = vec2_from_vec4(point_a); // take the first two coordinates
+    vec2_t b = vec2_from_vec4(point_b);
+    vec2_t c = vec2_from_vec4(point_c);
+
+    vec3_t weights = barycentric_weights(a, b, c, p);
+
+    float alpha = weights.x;
+    float beta = weights.y;
+    float gamma = weights.z;
+
+    // Variables to store the interpolated values of U, V and also 1/w for the current pixel
+    float interpolated_reciprocal_w;
+
+	interpolated_reciprocal_w = (1/point_a.w)*alpha + (1/point_b.w)*beta + (1/point_c.w)*gamma;
+	interpolated_reciprocal_w = 1/interpolated_reciprocal_w;
+
+    // TODO: Can we use 1/z_ndc, instead of 1/z?
+    /* float interpolated_reciprocal_zNDC; */
+	/* interpolated_reciprocal_zNDC = (1/point_a.z)*alpha + (1/point_b.z)*beta + (1/point_c.z)*gamma; */
+	/* interpolated_reciprocal_zNDC = 1/interpolated_reciprocal_w; */
+    /* if (interpolated_reciprocal_zNDC < z_buffer[(window_width * y) + x]){ */
+
+    /*     // Draw a pixel at position (x, y) with the color that comes from the mapped */
+    /*     // texture */
+    /*     draw_pixel(x, y, color); */
+
+    /*     // Update the z-buffer value with the 1/w of this current pixel. */
+    /*     z_buffer[(window_width * y) + x] = interpolated_reciprocal_zNDC; */
+    /* } */
+
+    // Only draw the pixel if the depth value is less than the one previously stored in the z-buffer.
+    if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]){
+
+        // Draw a pixel at position (x, y) with the color that comes from the mapped
+        // texture
+        draw_pixel(x, y, color, window_width, window_height, color_buffer);
+
+        // Update the z-buffer value with the 1/w of this current pixel.
+        z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+    }
+}
+
 /**
  * @brief renders "triangles_to_render"
  *
  * @param
  * @return
  */
-void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color) {
+void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color, int window_width, int window_height, color_t* color_buffer) {
 
     // dots
-    draw_rectangle(x0, y0, 3, 3, color);
-    draw_rectangle(x1, y1, 3, 3, color);
-    draw_rectangle(x2, y2, 3, 3, color);
+    draw_rectangle(x0, y0, 3, 3, color, window_width, window_height, color_buffer);
+    draw_rectangle(x1, y1, 3, 3, color, window_width, window_height, color_buffer);
+    draw_rectangle(x2, y2, 3, 3, color, window_width, window_height, color_buffer);
 
     // draw all edges (wireframes)
-    draw_line(x0, y0, x1, y1, color);
-    draw_line(x1, y1, x2, y2, color);
-    draw_line(x2, y2, x0, y0, color);
+    draw_line(x0, y0, x1, y1, color, window_width, window_height, color_buffer);
+    draw_line(x1, y1, x2, y2, color, window_width, window_height, color_buffer);
+    draw_line(x2, y2, x0, y0, color, window_width, window_height, color_buffer);
 }
 
 /**
@@ -76,7 +146,9 @@ void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color
 void draw_textured_triangle(int x0, int y0, float z0, float w0, tex2_t uv_a,
                             int x1, int y1, float z1, float w1, tex2_t uv_b,
                             int x2, int y2, float z2, float w2, tex2_t uv_c,
-                            uint32_t* texture){
+                            uint32_t* texture,
+                            int window_width, int window_height,
+                            color_t* color_buffer, float* z_buffer){
     // sort the vertices by y-coordinates ascending. (y0 < y1 < y2)
     if (y0 > y1){
         int_swap(&y0, &y1);
@@ -136,7 +208,7 @@ void draw_textured_triangle(int x0, int y0, float z0, float w0, tex2_t uv_a,
         // draw_line() doesn't work here. We go pixel-by-pixel
         for (int x = x_start; x < x_end; x++) {
           // draw with the color from the texture
-          draw_texel(x, y, point_a, point_b, point_c, uv_a, uv_b, uv_c, texture);
+          draw_texel(x, y, point_a, point_b, point_c, uv_a, uv_b, uv_c, texture, window_width, window_height, color_buffer, z_buffer);
         }
       }
     }
@@ -163,7 +235,7 @@ void draw_textured_triangle(int x0, int y0, float z0, float w0, tex2_t uv_a,
         // draw_line() doesn't work here. We go pixel-by-pixel
         for (int x = x_start; x < x_end; x++) {
           // draw with the color from the texture
-          draw_texel(x, y, point_a, point_b, point_c, uv_a, uv_b, uv_c, texture);
+          draw_texel(x, y, point_a, point_b, point_c, uv_a, uv_b, uv_c, texture, window_width, window_height, color_buffer, z_buffer);
         }
       }
     }
@@ -182,7 +254,7 @@ void draw_textured_triangle(int x0, int y0, float z0, float w0, tex2_t uv_a,
  *                /      \
  *    (x1, y1) P1 -------- (x2, y2)
  */
-void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color){
+void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color, int window_width, int window_height, color_t* color_buffer){
     // find two slopes: two triangle legs.
     // Note that we find slop with respect to delta y.
     float inv_slope1 = (float)(x1-x0)/(y1-y0);
@@ -194,7 +266,7 @@ void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, c
 
     // Loop all the scanlines from top to bottom
     for (int y = y0; y <= y2; y++){
-        draw_line((int)x_start, y, (int)x_end, y, color);
+        draw_line((int)x_start, y, (int)x_end, y, color, window_width, window_height, color_buffer);
         x_start += inv_slope1;
         x_end += inv_slope2;
     }
@@ -221,7 +293,7 @@ void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, c
  *
  *
  */
-void fill_flat_top_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color){
+void fill_flat_top_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color, int window_width, int window_height, color_t* color_buffer){
     // Draw flat-top triangle
     // Note that we find slop with respect to delta y.
     float inv_slope1 = (float)(x2-x0)/(y2-y0); // left leg
@@ -233,7 +305,7 @@ void fill_flat_top_triangle(int x0, int y0, int x1, int y1, int x2, int y2, colo
 
     // Loop all the scanlines from top to bottom
     for (int y = y2; y >= y0; y--){
-        draw_line((int)x_start, y, (int)x_end, y, color);
+        draw_line((int)x_start, y, (int)x_end, y, color, window_width, window_height, color_buffer);
         x_start -= inv_slope1;
         x_end -= inv_slope2;
     }
@@ -298,7 +370,9 @@ void fill_flat_top_triangle(int x0, int y0, int x1, int y1, int x2, int y2, colo
 void draw_filled_triangle(int x0, int y0, float z0, float w0,
 						  int x1, int y1, float z1, float w1,
 						  int x2, int y2, float z2, float w2,
-						  color_t color){
+						  color_t color,
+                          int window_width, int window_height,
+                          color_t* color_buffer, float* z_buffer){
 	// sort the vertices by y-coordinates ascending. (y0 < y1 < y2)
     if (y0 > y1){
         int_swap(&y0, &y1);
@@ -346,7 +420,7 @@ void draw_filled_triangle(int x0, int y0, float z0, float w0,
         // draw_line() doesn't work here. We go pixel-by-pixel
         for (int x = x_start; x < x_end; x++) {
           // draw with the color from the texture
-          draw_triangle_pixel(x, y, point_a, point_b, point_c, color);
+          draw_triangle_pixel(x, y, point_a, point_b, point_c, color, window_width, window_height, color_buffer, z_buffer);
         }
       }
     }
@@ -373,7 +447,7 @@ void draw_filled_triangle(int x0, int y0, float z0, float w0,
         // draw_line() doesn't work here. We go pixel-by-pixel
         for (int x = x_start; x < x_end; x++) {
           // draw with the color from the texture
-          draw_triangle_pixel(x, y, point_a, point_b, point_c, color);
+          draw_triangle_pixel(x, y, point_a, point_b, point_c, color, window_width, window_height, color_buffer, z_buffer);
         }
       }
     }

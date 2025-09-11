@@ -13,7 +13,7 @@ static mesh_t mesh = {
     .translation = {0, 0, 0}
 };
 
-vec3_t cube_vertices[N_CUBE_VERTICES] = {
+static vec3_t cube_vertices[N_CUBE_VERTICES] = {
     { .x = -1, .y = -1, .z = -1 }, // 1
     { .x = -1, .y =  1, .z = -1 }, // 2
     { .x =  1, .y =  1, .z = -1 }, // 3
@@ -24,7 +24,7 @@ vec3_t cube_vertices[N_CUBE_VERTICES] = {
     { .x = -1, .y = -1, .z =  1 }  // 8
 };
 
-face_t cube_faces[N_CUBE_FACES] = {
+static face_t cube_faces[N_CUBE_FACES] = {
     // faces have now uv coordinates for texture mapping.
     // front
     { .a = 1, .b = 2, .c = 3, .a_uv = { 0, 1 }, .b_uv = { 0, 0 }, .c_uv = { 1, 0 }, .color = 0xFFFFFFFF },
@@ -75,9 +75,9 @@ void mesh_scale(float X, float Y){
 }
 
 void mesh_translation(float X, float Y, float Z){
-    mesh.translation.x += X;
-    mesh.translation.y += Y;
-    mesh.translation.z += Z;
+    mesh.translation.x = X;
+    mesh.translation.y = Y;
+    mesh.translation.z = Z;
 }
 
 /**

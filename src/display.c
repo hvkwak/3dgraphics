@@ -189,13 +189,15 @@ bool setup(void){
     cull_method = CULL_BACKFACE;
 
     // initialize projection matrix and frustum planes
-    znear = 1.0;
-    zfar = 100;
-    aspect_x = (float)get_window_width()/(float)get_window_height();
-    aspect_y = (float)get_window_height()/(float)get_window_width();
-    fov_y = 1.04716666667; // PI/3 = 60 degrees
-    fov_x = atan(tan(fov_y / 2) * aspect_x)*2.0;
-    proj_mat = mat4_make_perspective(fov_y, aspect_y, znear, zfar);
+    float znear = init_znear(1.0);
+    float zfar = init_zfar(100.0);
+    float aspect_x = init_aspect_x((float)get_window_width()/(float)get_window_height());
+    float aspect_y = init_aspect_y((float)get_window_height()/(float)get_window_width());
+    float fov_y = init_fovy(1.04716666667); // PI/3 = 60 degrees
+    float fov_x = init_fovx(atan(tan(fov_y / 2) * aspect_x)*2.0);
+
+    // build proj mat
+    set_proj_mat(mat4_make_perspective(fov_y, aspect_y, znear, zfar));
 
     // initialilze frustum planes with a point and a normal
     init_frustum_planes(fov_x, fov_y, znear, zfar);
@@ -209,11 +211,11 @@ bool setup(void){
 
 #ifdef DEBUG
     // For Debugging in Emacs
-    char* png_filename = "../assets/f117.png";
-    char* obj_filename = "../assets/f117.obj";
+    char* png_filename = "../assets/f22.png";
+    char* obj_filename = "../assets/f22.obj";
 #else
-    char* png_filename = "./assets/f117.png";
-    char* obj_filename = "./assets/f117.obj";
+    char* png_filename = "./assets/f22.png";
+    char* obj_filename = "./assets/f22.obj";
 #endif
     if (!load_obj_file_data(obj_filename)){
         return false;
@@ -253,8 +255,8 @@ void update(void){
     set_num_triangles_to_render(0);
 
     // Note: having the delta-time ensures how many units I want to change per second, not per frame.
-    mesh_rotation(0.0*delta_time, 0.0*delta_time, 0.0*delta_time);
-    mesh_scale(0.000, 0.000);
+    //mesh_rotation(0.0*delta_time, 0.0*delta_time, 0.0*delta_time);
+    //mesh_scale(0.000, 0.000);
     mesh_translation(0.0, 0.0, 5.0); // Translate the vertex away to (0, 0, 5)
 
     // Change the camera position per animation frame
@@ -264,11 +266,9 @@ void update(void){
     // Create the view matrix
     // initialize the target looking at the positive z-axis
     vec3_t target = {0, 0, 1};
-    camera.direction = vec3_rotate_y(target, camera.yaw);
-    target = vec3_add(camera.position, camera.direction);
-
     vec3_t up_direction = {0, 1, 0};
-    view_mat = mat4_look_at(camera.position, target, up_direction);
+    set_target(&target);
+    set_view_mat(target, up_direction);
 
     // Create a scale, rotation, and translation mamtrix that will be used to multiply the mesh vertices
     mat4_t scale_matrix = mat4_make_scale(mesh->scale.x, mesh->scale.y, mesh->scale.z);
@@ -294,7 +294,7 @@ void update(void){
             vec4_t transformed_vertex = vec4_from_vec3(face_vertices[j]);
 
             // Use a matrix to scale, translate, and rotate the original vertex
-            world_mat = mat4_identity();
+            mat4_t world_mat = mat4_identity();
 
             // Order matters: scale -> rotate -> translate
             world_mat = mat4_mul_mat4(scale_matrix, world_mat);
@@ -307,7 +307,7 @@ void update(void){
             transformed_vertex = mat4_mul_vec4(world_mat, transformed_vertex);
 
             // Multiply the view matrix by the vector to transform the scene to camera space
-            transformed_vertex = mat4_mul_vec4(view_mat, transformed_vertex);
+            transformed_vertex = mat4_mul_vec4(get_view_mat(), transformed_vertex);
 
             // Save transformed vertex in the array of transformed vertices
             transformed_vertices[j] = transformed_vertex;
@@ -340,6 +340,7 @@ void update(void){
         }
 
         // Lighting
+        light_t light = get_light();
         float cos_angle_normal_light = -vec3_dot(vec_normal, light.direction); // inverse
         color_t new_color = (color_t)light_apply_intensity(mesh_face.color, cos_angle_normal_light);
 
@@ -372,7 +373,7 @@ void update(void){
             for (int j = 0; j < 3; j++){
 
                 // Project the current vertex
-                projected_points[j] = mat4_mul_vec4_project(proj_mat, triangle_after_clipping.points[j]);
+                projected_points[j] = mat4_mul_vec4_project(get_proj_mat(), triangle_after_clipping.points[j]);
 
                 // Invert y values
                 projected_points[j].y *= (-1.0);
@@ -401,7 +402,7 @@ void update(void){
             // Save the projected triangle in the array of triangles
             int num_triangles_to_render = get_num_triangles_to_render();
             if (num_triangles_to_render < MAX_TRIANGLES_PER_MESH){
-                triangles_to_render[num_triangles_to_render] = triangle_to_render;
+                update_triangles_to_render(num_triangles_to_render, triangle_to_render);
                 num_triangles_to_render++;
                 set_num_triangles_to_render(num_triangles_to_render);
             }
@@ -424,37 +425,38 @@ void render(void){
     for (int i = 0; i < get_num_triangles_to_render(); i++) {
 
         // render all vertex points
-        triangle_t triangle = triangles_to_render[i];
+        triangle_t triangle = get_triangle_to_render(i);
 
         // draw filled Triangle
         if (render_method == RENDER_FILL_TRIANGLE || render_method == RENDER_FILL_TRIANGLE_WIRE){
 			draw_filled_triangle(triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w,
 								 triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w,
 								 triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w,
-								 triangle.color); // dark gray
+								 triangle.color, window_width, window_height, color_buffer, z_buffer); // dark gray
         }
 
         // draw textured triangle
         if (render_method == RENDER_TEXTURED || render_method == RENDER_TEXTURED_WIRE){
+            uint32_t* mesh_texture = get_texture();
             draw_textured_triangle(
                 triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.textcoords[0],
                 triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w, triangle.textcoords[1],
                 triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w, triangle.textcoords[2],
-                mesh_texture);
+                mesh_texture, window_width, window_height, color_buffer, z_buffer);
         }
 
         // draw wireframe
         if (render_method == RENDER_WIRE || render_method == RENDER_WIRE_VERTEX || render_method == RENDER_FILL_TRIANGLE_WIRE || render_method == RENDER_TEXTURED_WIRE) {
             draw_triangle(triangle.points[0].x, triangle.points[0].y,
                           triangle.points[1].x, triangle.points[1].y,
-                          triangle.points[2].x, triangle.points[2].y, 0xFFFFFFFF);
+                          triangle.points[2].x, triangle.points[2].y, 0xFFFFFFFF, window_width, window_height, color_buffer);
         }
 
         // draw vertex in red
         if (render_method == RENDER_WIRE_VERTEX){
-            draw_rectangle(triangle.points[0].x, triangle.points[0].y, 3, 3, 0xFF0000FF);
-            draw_rectangle(triangle.points[1].x, triangle.points[1].y, 3, 3, 0xFF0000FF);
-            draw_rectangle(triangle.points[2].x, triangle.points[2].y, 3, 3, 0xFF0000FF);
+            draw_rectangle(triangle.points[0].x, triangle.points[0].y, 3, 3, 0xFF0000FF, window_width, window_height, color_buffer);
+            draw_rectangle(triangle.points[1].x, triangle.points[1].y, 3, 3, 0xFF0000FF, window_width, window_height, color_buffer);
+            draw_rectangle(triangle.points[2].x, triangle.points[2].y, 3, 3, 0xFF0000FF, window_width, window_height, color_buffer);
         }
     }
 

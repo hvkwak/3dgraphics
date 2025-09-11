@@ -1,7 +1,7 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include <stdint.h>
+#include "color.h"
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_stdinc.h>
@@ -24,9 +24,6 @@ enum render_method {
     RENDER_TEXTURED,
     RENDER_TEXTURED_WIRE
 };
-
-// Declare a new type of definition to hold 32-bit colors value
-typedef uint32_t color_t;
 
 // pipeline
 bool initialize(void);

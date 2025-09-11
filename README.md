@@ -24,6 +24,8 @@ make run
 </div>
 
 **Topics Covered So Far**
+* Code Refactoring
+* Clipping
 * Camera: Look At Camera Model
 * Z-Buffer
 * Textured OBJ Files

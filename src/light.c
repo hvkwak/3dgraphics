@@ -1,8 +1,12 @@
 #include "light.h"
 
-light_t light = {
+static light_t light = {
     .direction = { 0, 0, 1 }
 };
+
+light_t get_light(){
+    return light;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Change color based on a percentage factor to represent light intensity
