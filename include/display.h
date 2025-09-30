@@ -51,5 +51,10 @@ void clear_z_buffer(void);
 void destroy_display(void);
 void destroy_save(void);
 
+// render options
+bool is_render_texture(void);
+bool is_render_filled_triangle(void);
+bool is_render_wireframe(void);
+
 
 #endif // DISPLAY_H

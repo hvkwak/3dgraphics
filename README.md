@@ -1,12 +1,17 @@
 # 3dgraphics
-This repository contains my programming exercises and project code related to 3D computer graphics.
+This repository contains my exercise code of the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com)).
 
 ## How to install
 Install dependencies to compile and run the program
-
 ```
 sudo apt install build-essential
-sudo apt install libsdl2-dev libsdl2-image-dev # 3D Computer Graphics from Scratch
+sudo apt install libsdl2-dev libsdl2-image-dev # for 3D Computer Graphics from Scratch
+```
+
+For texture mapping based on `png` files, we use `upng`.
+```
+curl -fSL "https://raw.githubusercontent.com/elanthis/upng/master/upng.h" -o ./include/upng.h
+curl -fSL "https://raw.githubusercontent.com/elanthis/upng/master/upng.c" -o ./src/upng.c
 ```
 
 ## How to run
@@ -16,15 +21,15 @@ make build
 make run
 ```
 
-## Features (latest-first)
-**Based on the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com))**
+## Features
+**Current Output: Displaying Multiple Meshes**
 <div style="text-align: center; display: inline-block;">
-  <div><strong>Current Output:</strong> Clipping with Camera Frustum. </div>
-  <img src="output.gif" alt="Clipping with Camera Frustum." width="320">
+  <img src="output.gif" alt="Multiple Meshes." width="320">
 </div>
 
-**Topics Covered So Far**
-* Code Refactoring
+**Topics Covered So Far** (latest-first)
+* Multiple Meshes
+* Code Refactoring and Polishing
 * Clipping
 * Camera: Look At Camera Model
 * Z-Buffer

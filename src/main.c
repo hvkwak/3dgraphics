@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 #include "display.h"
@@ -48,28 +47,36 @@ void process_input(void){
                 } else if (event.key.keysym.sym == SDLK_f) {
                     // f Disables the back-face culling
                     set_cull_method(CULL_NONE);
-                } else if (event.key.keysym.sym == SDLK_d) {
+                } else if (event.key.keysym.sym == SDLK_d) { // Rotation
                     // d rotate camera yaw +
-                    set_camera_yaw(1.0 * get_delta_time());
+                    rotate_camera_yaw(get_delta_time());
                 } else if (event.key.keysym.sym == SDLK_a) {
                     // a rotate camera yaw -
-                    set_camera_yaw(-1.0 * get_delta_time());
+                    rotate_camera_yaw(-get_delta_time());
                 } else if (event.key.keysym.sym == SDLK_w) {
-                    // w moves camera forward
-                    float delta_time = get_delta_time();
-                    set_camera_forward(delta_time);
+                    // w rotate camera pitch +
+                    rotate_camera_pitch(get_delta_time());
                 } else if (event.key.keysym.sym == SDLK_s) {
-                    // s moves camera backward
-                    float delta_time = get_delta_time();
-                    set_camera_forward(-delta_time);
-                } else if (event.key.keysym.sym == SDLK_UP) {
+                    // s rotate camera pitch -
+                    rotate_camera_pitch(-get_delta_time());
+                } else if (event.key.keysym.sym == SDLK_UP) { // Translation
                     // up translates camera position +
                     float delta_time = get_delta_time();
-                    set_camera_translate(-3.0 * delta_time);
+                    set_camera_translate_y(3.0*delta_time);
+                    /* set_camera_forward(3.0 * delta_time); */
                 } else if (event.key.keysym.sym == SDLK_DOWN) {
                     // down translates camera position -
                     float delta_time = get_delta_time();
-                    set_camera_translate(3.0 * delta_time);
+                    set_camera_translate_y(-3.0*delta_time);
+                    /* set_camera_forward(-3.0 * delta_time); */
+                }else if (event.key.keysym.sym == SDLK_RIGHT) {
+                    // up translates camera position x +
+                    float delta_time = get_delta_time();
+                    set_camera_translate_x(3.0 * delta_time);
+                } else if (event.key.keysym.sym == SDLK_LEFT) {
+                    // down translates camera position x -
+                    float delta_time = get_delta_time();
+                    set_camera_translate_x(-3.0 * delta_time);
                 }
                 break;
         }
@@ -84,7 +91,6 @@ void process_input(void){
  */
 void free_resources(void){
     free_mesh();
-    free_texture();
 }
 
 /**
@@ -95,15 +101,7 @@ void free_resources(void){
  */
 int main(int argc, char *argv[]){
 
-    for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "--export") == 0 || strcmp(argv[i], "-e") == 0) {
-            set_export(true);
-        } else {
-            fprintf(stderr, "Unknown argument: %s\n", argv[i]);
-            fprintf(stderr, "Usage: %s [--export]\n", argv[0]);
-            return 1;
-        }
-    }
+    set_export(true);
 
 	if (!initialize()){
 		printf("initialization() failed");

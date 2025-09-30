@@ -3,7 +3,7 @@
 #include "draw.h"
 #include "util.h"
 #include <stdlib.h>
-
+#include "upng.h"
 
 // Array of triangles that should be rendered frame by frame
 static triangle_t triangles_to_render[MAX_TRIANGLES_PER_MESH];
@@ -18,7 +18,6 @@ triangle_t get_triangle_to_render(int i){
         return triangles_to_render[i];
     }else{
         triangle_t triangle = {
-            .avg_depth = 0.0,
             .points = {{0.0, 0.0, 0.0, 0.0}},
             .textcoords = {{0.0, 0.0}},
             .color = 0xFF000000
@@ -34,34 +33,6 @@ void set_num_triangles_to_render(int num){
 
 int get_num_triangles_to_render(void){
     return num_traingles_to_render;
-}
-
-/**
- * @brief swaps the two triangles
- *
- * @param pointer to triangle a and b
- * @return
- */
-bool swap_triangle(triangle_t* pa, triangle_t* pb){
-    if (compare_triangle(pa, pb)){
-        triangle_t tmp = *pa;
-        *pa = *pb;
-        *pb = tmp;
-        return true;
-    }
-    return false;
-}
-
-/**
- * @brief compares the depth of the two triangels.
- *
- * @param two pointers to triangles a and b
- * @return true, if a.avg_depth < b.avg_depth
- */
-bool compare_triangle(const void * a, const void * b){
-    const triangle_t* A = (const triangle_t*)a;
-    const triangle_t* B = (const triangle_t*)b;
-    return (A->avg_depth < B->avg_depth);
 }
 
 
@@ -146,7 +117,7 @@ void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, color_t color
 void draw_textured_triangle(int x0, int y0, float z0, float w0, tex2_t uv_a,
                             int x1, int y1, float z1, float w1, tex2_t uv_b,
                             int x2, int y2, float z2, float w2, tex2_t uv_c,
-                            uint32_t* texture,
+                            upng_t* texture,
                             int window_width, int window_height,
                             color_t* color_buffer, float* z_buffer){
     // sort the vertices by y-coordinates ascending. (y0 < y1 < y2)
@@ -451,4 +422,23 @@ void draw_filled_triangle(int x0, int y0, float z0, float w0,
         }
       }
     }
+}
+
+
+vec3_t get_triangle_normal(vec4_t vertices[3]){
+
+    // normal vector for lighting and back-face culling
+    vec3_t vectorA = vec3_from_vec4(vertices[0]);
+    vec3_t vectorB = vec3_from_vec4(vertices[1]);
+    vec3_t vectorC = vec3_from_vec4(vertices[2]);
+
+    vec3_t vec_AtoB = vec3_sub(vectorB, vectorA); // B-A
+    vec3_t vec_AtoC = vec3_sub(vectorC, vectorA); // C-A
+    vec3_normalize(&vec_AtoB);
+    vec3_normalize(&vec_AtoC);
+
+    vec3_t vec_normal = vec3_cp(vec_AtoB, vec_AtoC);
+    vec3_normalize(&vec_normal);
+
+    return vec_normal;
 }

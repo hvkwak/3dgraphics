@@ -4,6 +4,7 @@
 #include "util.h"
 #include <stdlib.h>
 #include <math.h>
+#include "upng.h"
 
 /**
  * @brief draws a pixel
@@ -142,7 +143,7 @@ void draw_rectangle(int x, int y, int w, int h, color_t color, int window_width,
 void draw_texel(int x, int y,
                 vec4_t point_a, vec4_t point_b, vec4_t point_c,
                 tex2_t uv_a, tex2_t uv_b, tex2_t uv_c,
-                uint32_t* texture,
+                upng_t* texture,
                 int window_width, int window_height,
                 color_t* color_buffer, float* z_buffer)
 {
@@ -161,9 +162,6 @@ void draw_texel(int x, int y,
     float interpolated_u;
     float interpolated_v;
     float interpolated_reciprocal_w;
-
-    int texture_width = get_texture_width();
-    int texture_height = get_texture_height();
 
     // Note 1: Potential misunderstanding due to wording(?)
     // Perspective is non-linear transform that involves dividing by w.
@@ -191,31 +189,39 @@ void draw_texel(int x, int y,
     interpolated_u /= interpolated_reciprocal_w;
     interpolated_v /= interpolated_reciprocal_w;
 
+    // Get the mesh texture width and height dimensions
+    int texture_width = upng_get_width(texture);
+    int texture_height = upng_get_height(texture);
+
     // map the uv coordinate to the full texture width and height
     // module due to "truncation error"
-    int tex_x = (int)(interpolated_u * texture_width);
-    int tex_y = (int)(interpolated_v * texture_height);
-    if (texture_width <= tex_x){
-        tex_x = texture_width - 1;
-    }
-    if (texture_height <= tex_y){
-        tex_y = texture_height -1;
-    }
+    int tex_x = abs((int)(interpolated_u * texture_width))%texture_width;
+    int tex_y = abs((int)(interpolated_v * texture_height))%texture_height;
 
-    // Draw a pixel at position (x, y) with the color that comes from the mapped
-    // texture
-    //draw_pixel(x, y, texture[(texture_width * tex_y) + tex_x]);
+
+    /* if (texture_width <= tex_x){ */
+    /*     tex_x = texture_width - 1; */
+    /* } */
+    /* if (texture_height <= tex_y){ */
+    /*     tex_y = texture_height -1; */
+    /* } */
+
+    /* // Draw a pixel at position (x, y) with the color that comes from the mapped */
+    /* // texture */
+    /* //draw_pixel(x, y, texture[(texture_width * tex_y) + tex_x]); */
 
     // Adjust 1/w so the pixels that are closer to the camera have smaller values
-    // interpolated_reciprocal_w = 1.0 - interpolated_reciprocal_w;
-    interpolated_reciprocal_w = 1/interpolated_reciprocal_w;
+    interpolated_reciprocal_w = 1.0 - interpolated_reciprocal_w;
+    /* interpolated_reciprocal_w = 1/interpolated_reciprocal_w; */
 
     // Only draw the pixel if the depth value is less than the one previously stored in the z-buffer.
     if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]){
 
-        // Draw a pixel at position (x, y) with the color that comes from the mapped
-        // texture
-        draw_pixel(x, y, texture[(texture_width * tex_y) + tex_x], window_width, window_height, color_buffer);
+        // Get the buffer of colors from the texture
+        uint32_t* texture_buffer = (uint32_t*)upng_get_buffer(texture);
+
+        // Draw a pixel at position (x, y) with the color that comes from the mapped texture
+        draw_pixel(x, y, texture_buffer[(texture_width * tex_y) + tex_x], window_width, window_height, color_buffer);
 
         // Update the z-buffer value with the 1/w of this current pixel.
         z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;

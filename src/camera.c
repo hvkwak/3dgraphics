@@ -14,7 +14,7 @@ static mat4_t proj_mat; // projection matrix
 static mat4_t view_mat; // look_at matrix
 static mat4_t world_mat;
 
-camera_t camera = {
+static camera_t camera = {
     .position = {0, 0, 0},
     .direction = {0, 0, 1}, // looking at unit position in z, forward.
     .forward_velocity = {0, 0, 0},
@@ -24,16 +24,23 @@ camera_t camera = {
 ////////////////////////////////////////////////////////////////////////////////
 // Setters
 ////////////////////////////////////////////////////////////////////////////////
-void set_camera_yaw(float delta){
-    camera.yaw += delta;
+
+
+void rotate_camera_yaw(float angle){
+    camera.yaw += angle;
+}
+
+void rotate_camera_pitch(float angle){
+    camera.pitch += angle;
 }
 
 void set_camera_direction(vec3_t target){
-    camera.direction = vec3_rotate_y(target, camera.yaw);
+    vec3_t direction_yaw = vec3_rotate_y(target, camera.yaw);
+    camera.direction = vec3_rotate_x(direction_yaw, camera.pitch);
 }
 
 void set_target(vec3_t* target){
-    camera.direction = vec3_rotate_y(*target, camera.yaw);
+    set_camera_direction(*target);
     *target = vec3_add(camera.position, camera.direction);
 }
 
@@ -50,7 +57,11 @@ void set_camera_forward(float delta_time){
     camera.position = vec3_add(camera.position, camera.forward_velocity);
 }
 
-void set_camera_translate(float delta){
+void set_camera_translate_x(float delta){
+    camera.position.x += delta;
+}
+
+void set_camera_translate_y(float delta){
     camera.position.y += delta;
 }
 
@@ -82,6 +93,11 @@ void set_world_mat(mat4_t mat){
 ////////////////////////////////////////////////////////////////////////////////
 // initializers
 ////////////////////////////////////////////////////////////////////////////////
+void init_camera(vec3_t position, vec3_t direction){
+    camera.position = position;
+    camera.direction = direction;
+}
+
 float init_znear(float z){
     set_camera_znear(z);
     return z;
@@ -110,6 +126,14 @@ float init_fovy(float r){
 ////////////////////////////////////////////////////////////////////////////////
 // Getters
 ////////////////////////////////////////////////////////////////////////////////
+float get_camera_yaw(void){
+    return camera.yaw;
+}
+
+float get_camera_pitch(void){
+    return camera.pitch;
+}
+
 float get_fov_x(void){
     return fov_x;
 }
