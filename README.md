@@ -16,18 +16,33 @@ curl -fSL "https://raw.githubusercontent.com/elanthis/upng/master/upng.c" -o ./s
 
 ## How to run
 To compile and run the main program (e.g., `src/main.c`), use the following command:
-```
+``` shell
 make build
-make run
+cd build
+./renderer
+```
+note that you may need a mesh file `.obj` and its corresponding texture a `.png` file.<br>
+
+To run mini rasterizer `src-tr/main.c`, use the following command:
+``` shell
+make build-tr
+cd build-tr
+./rasterizer
 ```
 
 ## Features
-**Current Output: Displaying Multiple Meshes**
+**Final Output: Displaying Multiple Meshes**
 <div style="text-align: center; display: inline-block;">
   <img src="output.gif" alt="Multiple Meshes." width="320">
 </div>
 
+**Mini Rasterizer Output: Subpixel Rasterization**
+<div style="text-align: center; display: inline-block;">
+  <img src="output-tr.gif" alt="Subpixel Rasterization." width="320">
+</div>
+
 **Topics Covered So Far** (latest-first)
+* A Better Triangle Rasterizer, Edge Function, Subpixel Rasterization
 * Multiple Meshes
 * Code Refactoring and Polishing
 * Clipping

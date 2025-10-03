@@ -1,0 +1,5 @@
+captures/*.png
+captures-tr/*.png
+build/*
+build-tr/*
+assets/*
