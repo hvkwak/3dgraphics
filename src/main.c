@@ -12,7 +12,7 @@ static bool is_running = true;
  * @param
  * @return
  */
-void process_input(void) {
+void process_input(void){
   // read event
   SDL_Event event;
   while (SDL_PollEvent(&event)) {

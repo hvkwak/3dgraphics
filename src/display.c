@@ -420,9 +420,9 @@ void update(void){
         mesh_t* mesh = get_mesh(mesh_index);
 
         // Change the mesh scale, rotation, and translation values per animation frame
-        /* mesh->rotation.x += 0.0 * delta_time; */
-        /* mesh->rotation.y += 0.0 * delta_time; */
-        /* mesh->rotation.z += 0.0 * delta_time; */
+        mesh->rotation.x += 0.6 * delta_time;
+        mesh->rotation.y += 0.4 * delta_time;
+        mesh->rotation.z += 0.8 * delta_time;
         /* mesh->translation.z += 0.0 * delta_time; */
 
         // Change the camera position per animation frame
