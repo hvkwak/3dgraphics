@@ -1,4 +1,4 @@
-# 3dgraphics
+# 3D Computer Graphics from Scratch
 This repository contains my exercise code of the course *3D Computer Graphics from Scratch* by Gustavo Pezzi ([@Pikuma](https://www.pikuma.com)).
 
 ## How to install
